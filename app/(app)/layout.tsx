@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { verifySession } from "@/lib/dal";
 import BottomNav from "./bottom-nav";
+import { ConfirmProvider } from "@/components/confirm-dialog";
 
 export default async function AppLayout({
   children,
@@ -47,7 +48,9 @@ export default async function AppLayout({
         </nav>
       </header>
 
-      <main className="mb-16 flex flex-1 flex-col md:mb-0">{children}</main>
+      <main className="mb-16 flex flex-1 flex-col md:mb-0">
+        <ConfirmProvider>{children}</ConfirmProvider>
+      </main>
 
       <BottomNav />
     </>

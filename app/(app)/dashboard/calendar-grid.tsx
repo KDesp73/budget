@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { deleteExpense } from "@/app/actions/expenses";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/confirm-dialog";
 import type { DailyTotal } from "@/app/actions/expenses";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -33,9 +34,10 @@ export default function CalendarGrid({
 }) {
   const [mode, setMode] = useState<"separate" | "heatmap">("separate");
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const { confirm } = useConfirm();
 
   async function handleDelete(id: number) {
-    if (!window.confirm("Delete this expense?")) return;
+    if (!(await confirm({ title: "Delete expense", message: "Delete this expense?", destructive: true, confirmLabel: "Delete" }))) return;
     const fd = new FormData();
     fd.set("id", String(id));
     await deleteExpense(fd);

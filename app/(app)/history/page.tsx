@@ -16,9 +16,11 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { X, Check, Pencil, Search } from "lucide-react";
+import { useConfirm } from "@/components/confirm-dialog";
 import type { Expense } from "@/app/actions/expenses";
 
 export default function HistoryPage() {
+  const { confirm } = useConfirm();
   const [loaded, setLoaded] = useState(false);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [search, setSearch] = useState("");
@@ -84,7 +86,7 @@ export default function HistoryPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm("Delete this expense?")) return;
+    if (!(await confirm({ title: "Delete expense", message: "Delete this expense?", destructive: true, confirmLabel: "Delete" }))) return;
     const fd = new FormData();
     fd.set("id", String(id));
     await deleteExpense(fd);

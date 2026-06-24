@@ -7,9 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, X, Pencil, Check } from "lucide-react";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/confirm-dialog";
 import type { Expense } from "@/app/actions/expenses";
 
 export default function QuickLog() {
+  const { confirm } = useConfirm();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [total, setTotal] = useState(0);
   const [dailyGoal, setDailyGoal] = useState(0);
@@ -51,7 +53,7 @@ export default function QuickLog() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!window.confirm("Delete this expense?")) return;
+    if (!(await confirm({ title: "Delete expense", message: "Delete this expense?", destructive: true, confirmLabel: "Delete" }))) return;
     const formData = new FormData();
     formData.set("id", String(id));
     await deleteExpense(formData);
