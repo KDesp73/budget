@@ -4,7 +4,7 @@ import { db } from "@/db/index";
 import { verifySession } from "@/lib/dal";
 import { revalidatePath } from "next/cache";
 
-const REVALIDATE_PATHS = ["/", "/dashboard", "/settings"];
+const REVALIDATE_PATHS = ["/", "/dashboard", "/settings", "/history"];
 
 function toPlain(row: Record<string, unknown>): Expense {
   return {
@@ -132,6 +132,90 @@ export async function deleteExpense(formData: FormData) {
   const id = Number(formData.get("id"));
 
   await db.execute("DELETE FROM expenses WHERE id = ?", [id]);
+
+  REVALIDATE_PATHS.forEach((p) => revalidatePath(p));
+}
+
+export async function searchExpenses(query: {
+  search?: string;
+  startDate?: string;
+  endDate?: string;
+  type?: "daily" | "monthly" | "all";
+}): Promise<Expense[]> {
+  await verifySession();
+
+  const conditions: string[] = [];
+  const params: (string | number)[] = [];
+
+  if (query.search) {
+    conditions.push("name LIKE ?");
+    params.push(`%${query.search}%`);
+  }
+
+  if (query.startDate) {
+    conditions.push("date >= ?");
+    params.push(query.startDate);
+  }
+
+  if (query.endDate) {
+    conditions.push("date <= ?");
+    params.push(query.endDate);
+  }
+
+  if (query.type && query.type !== "all") {
+    conditions.push("type = ?");
+    params.push(query.type);
+  }
+
+  const where = conditions.length > 0 ? ` WHERE ${conditions.join(" AND ")}` : "";
+  const sql = `SELECT id, name, amount, type, date, created_at FROM expenses${where} ORDER BY created_at DESC`;
+
+  const result = await db.execute(sql, params);
+  return result.rows.map((r) => toPlain(r as Record<string, unknown>));
+}
+
+export async function exportMonthCSV(year: number, month: number): Promise<string> {
+  await verifySession();
+
+  const monthStr = `${year}-${String(month).padStart(2, "0")}`;
+  const result = await db.execute(
+    `SELECT name, amount, type, date, created_at
+     FROM expenses
+     WHERE (type = 'daily' AND date LIKE ?) OR (type = 'monthly')
+     ORDER BY date ASC, created_at ASC`,
+    [`${monthStr}%`]
+  );
+
+  const rows = result.rows.map((r) => toPlain(r as Record<string, unknown>));
+  const header = "Name,Amount,Type,Date\n";
+  const body = rows
+    .map((r) => `${r.name},${r.amount.toFixed(2)},${r.type},${r.date ?? ""}`)
+    .join("\n");
+  return header + body;
+}
+
+export async function updateExpense(id: number, data: { name?: string; amount?: number }) {
+  await verifySession();
+
+  const sets: string[] = [];
+  const params: (string | number)[] = [];
+
+  if (data.name !== undefined) {
+    sets.push("name = ?");
+    params.push(data.name);
+  }
+  if (data.amount !== undefined) {
+    sets.push("amount = ?");
+    params.push(data.amount);
+  }
+
+  if (sets.length === 0) return;
+
+  params.push(id);
+  await db.execute(
+    `UPDATE expenses SET ${sets.join(", ")} WHERE id = ?`,
+    params
+  );
 
   REVALIDATE_PATHS.forEach((p) => revalidatePath(p));
 }

@@ -1,0 +1,16 @@
+{
+  "name": "Budget",
+  "short_name": "Budget",
+  "description": "Personal expense tracker",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0f0f0f",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

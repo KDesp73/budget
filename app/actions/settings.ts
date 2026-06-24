@@ -9,6 +9,7 @@ export type Settings = {
   savingsPercentage: number;
   dailyGoal: number;
   quickItems: string[];
+  categoryBudgets: Record<string, number>;
 };
 
 const DEFAULT_QUICK_ITEMS = ["Coffee", "Lunch", "Dinner", "Transport", "Snack", "Groceries"];
@@ -17,7 +18,7 @@ export async function getSettings(): Promise<Settings> {
   await verifySession();
 
   const rows = await db.execute(
-    "SELECT key, value FROM settings WHERE key IN ('monthly_salary', 'savings_percentage', 'daily_goal', 'quick_items')"
+    "SELECT key, value FROM settings WHERE key IN ('monthly_salary', 'savings_percentage', 'daily_goal', 'quick_items', 'category_budgets')"
   );
 
   const map = new Map(rows.rows.map((r: Record<string, unknown>) => [r.key as string, r.value as string]));
@@ -27,6 +28,7 @@ export async function getSettings(): Promise<Settings> {
     savingsPercentage: map.has("savings_percentage") ? Number(map.get("savings_percentage")) : 0,
     dailyGoal: map.has("daily_goal") ? Number(map.get("daily_goal")) : 0,
     quickItems: map.has("quick_items") ? JSON.parse(map.get("quick_items")!) : DEFAULT_QUICK_ITEMS,
+    categoryBudgets: map.has("category_budgets") ? JSON.parse(map.get("category_budgets")!) : {},
   };
 }
 
@@ -55,6 +57,20 @@ export async function saveQuickItems(items: string[]) {
   );
 
   revalidatePath("/");
+  revalidatePath("/settings");
+
+  return { success: true };
+}
+
+export async function saveCategoryBudgets(budgets: Record<string, number>) {
+  await verifySession();
+
+  await db.execute(
+    "INSERT INTO settings (key, value) VALUES ('category_budgets', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+    [JSON.stringify(budgets)]
+  );
+
+  revalidatePath("/dashboard");
   revalidatePath("/settings");
 
   return { success: true };

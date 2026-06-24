@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import { saveSettings, getSettings, saveQuickItems } from "@/app/actions/settings";
+import { saveSettings, getSettings, saveQuickItems, saveCategoryBudgets } from "@/app/actions/settings";
 import {
   getExpenses,
   addExpense,
@@ -28,6 +28,9 @@ export default function SettingsPage() {
   const [monthlyExpenses, setMonthlyExpenses] = useState<Expense[]>([]);
   const [quickItems, setQuickItems] = useState<string[]>([]);
   const [newItem, setNewItem] = useState("");
+  const [categoryBudgets, setCategoryBudgets] = useState<Record<string, number>>({});
+  const [budgetCategory, setBudgetCategory] = useState("");
+  const [budgetAmount, setBudgetAmount] = useState("");
   const [state, action, pending] = useActionState(saveSettings, undefined);
 
   const refreshMonthly = () =>
@@ -39,6 +42,7 @@ export default function SettingsPage() {
       setPercentage(String(s.savingsPercentage));
       setDailyGoal(String(s.dailyGoal));
       setQuickItems(s.quickItems);
+      setCategoryBudgets(s.categoryBudgets);
     });
     refreshMonthly().then(() => setLoaded(true));
   }, []);
@@ -176,6 +180,81 @@ export default function SettingsPage() {
                         ✕
                       </Button>
                     </form>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Category Budgets</CardTitle>
+          <CardDescription>Monthly spending limits per category</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex gap-2">
+            <Input
+              value={budgetCategory}
+              onChange={(e) => setBudgetCategory(e.target.value)}
+              placeholder="Category name"
+              className="flex-1"
+              list="category-suggestions"
+            />
+            <datalist id="category-suggestions">
+              {quickItems.map((item) => (
+                <option key={item} value={item} />
+              ))}
+            </datalist>
+            <Input
+              type="number"
+              step="0.01"
+              value={budgetAmount}
+              onChange={(e) => setBudgetAmount(e.target.value)}
+              placeholder="Budget"
+              className="w-24"
+            />
+            <Button
+              type="button"
+              disabled={!budgetCategory.trim() || !budgetAmount}
+              onClick={() => {
+                if (budgetCategory.trim() && Number(budgetAmount) > 0) {
+                  const next = { ...categoryBudgets, [budgetCategory.trim()]: Number(budgetAmount) };
+                  setCategoryBudgets(next);
+                  saveCategoryBudgets(next);
+                  setBudgetCategory("");
+                  setBudgetAmount("");
+                }
+              }}
+            >
+              <Plus className="size-4" />
+            </Button>
+          </div>
+          {Object.keys(categoryBudgets).length === 0 ? (
+            <p className="text-sm text-muted-foreground">No category budgets set</p>
+          ) : (
+            <div className="space-y-2">
+              {Object.entries(categoryBudgets).map(([cat, budget]) => (
+                <div
+                  key={cat}
+                  className="flex items-center justify-between rounded-lg border px-3 py-2"
+                >
+                  <span className="text-sm">{cat}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">€{budget.toFixed(2)}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = { ...categoryBudgets };
+                        delete next[cat];
+                        setCategoryBudgets(next);
+                        saveCategoryBudgets(next);
+                      }}
+                      className="text-muted-foreground hover:text-destructive"
+                    >
+                      <X className="size-3.5" />
+                    </button>
                   </div>
                 </div>
               ))}

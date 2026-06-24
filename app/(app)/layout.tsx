@@ -29,6 +29,12 @@ export default async function AppLayout({
             Dashboard
           </Link>
           <Link
+            href="/history"
+            className="inline-flex h-7 items-center justify-center rounded-lg px-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            History
+          </Link>
+          <Link
             href="/settings"
             className="inline-flex h-7 items-center justify-center rounded-lg px-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
           >
