@@ -3,7 +3,9 @@
 import { useState, useMemo } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { deleteExpense } from "@/app/actions/expenses";
+import { toast } from "sonner";
 import type { DailyTotal } from "@/app/actions/expenses";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -30,6 +32,15 @@ export default function CalendarGrid({
   onNext: () => void;
 }) {
   const [mode, setMode] = useState<"separate" | "heatmap">("separate");
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+
+  async function handleDelete(id: number) {
+    if (!window.confirm("Delete this expense?")) return;
+    const fd = new FormData();
+    fd.set("id", String(id));
+    await deleteExpense(fd);
+    toast.success("Expense deleted");
+  }
 
   const maxTotal = useMemo(
     () => Math.max(...data.map((d) => d.total), 1),
@@ -114,8 +125,10 @@ export default function CalendarGrid({
 
             if (mode === "heatmap") {
               return (
-                <div
+                <button
+                  type="button"
                   key={day}
+                  onClick={() => setSelectedDay(day)}
                   className={`flex aspect-square flex-col items-center justify-center rounded-lg text-xs transition-colors ${heatColor(amount / maxTotal)}`}
                 >
                   <span className="font-medium">{day}</span>
@@ -124,13 +137,15 @@ export default function CalendarGrid({
                       €{amount.toFixed(0)}
                     </span>
                   )}
-                </div>
+                </button>
               );
             }
 
             return (
-              <div
+              <button
+                type="button"
                 key={day}
+                onClick={() => setSelectedDay(day)}
                 className="flex aspect-square flex-col items-center justify-center rounded-lg border bg-background"
               >
                 <span className="text-sm font-medium">{day}</span>
@@ -143,10 +158,65 @@ export default function CalendarGrid({
                     -
                   </span>
                 )}
-              </div>
+              </button>
             );
           })}
         </div>
+
+        {selectedDay !== null && (() => {
+          const info = dayMap.get(selectedDay);
+          const dateStr = info?.date ?? `${year}-${String(month).padStart(2, "0")}-${String(selectedDay).padStart(2, "0")}`;
+          const expenses = info?.expenses ?? [];
+
+          return (
+            <div className="relative mt-3">
+              <div className="rounded-lg border bg-card p-3 shadow-sm">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-sm font-semibold">
+                    {new Date(dateStr).toLocaleDateString("default", {
+                      weekday: "short",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedDay(null)}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="size-4" />
+                  </button>
+                </div>
+                {expenses.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No expenses</p>
+                ) : (
+                  <ul className="space-y-1.5">
+                    {expenses.map((e) => (
+                      <li
+                        key={e.id}
+                        className="flex items-center justify-between gap-2 text-sm"
+                      >
+                        <span className="truncate">{e.name}</span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="tabular-nums font-medium">
+                            €{e.amount.toFixed(2)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(e.id)}
+                            className="text-xs text-muted-foreground hover:text-destructive"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          );
+        })()}
       </CardContent>
     </Card>
   );
