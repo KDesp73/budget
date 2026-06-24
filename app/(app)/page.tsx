@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Plus, X } from "lucide-react";
 import type { Expense } from "@/app/actions/expenses";
 
-const QUICK_ITEMS = ["Coffee", "Lunch", "Dinner", "Transport", "Snack", "Groceries"];
+
 
 const QUICK_AMOUNTS = [5, 10, 20, 50];
 
@@ -16,6 +16,7 @@ export default function QuickLog() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [total, setTotal] = useState(0);
   const [dailyGoal, setDailyGoal] = useState(0);
+  const [quickItems, setQuickItems] = useState<string[]>([]);
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const nameRef = useRef<HTMLInputElement>(null);
@@ -30,7 +31,10 @@ export default function QuickLog() {
 
   useEffect(() => {
     refreshExpenses();
-    getSettings().then((s) => setDailyGoal(s.dailyGoal));
+    getSettings().then((s) => {
+      setDailyGoal(s.dailyGoal);
+      setQuickItems(s.quickItems);
+    });
   }, []);
 
   const handleSubmit = async (formData: FormData) => {
@@ -171,7 +175,7 @@ export default function QuickLog() {
       </div>
 
       <div className="flex flex-wrap gap-1.5">
-        {QUICK_ITEMS.map((item) => (
+        {quickItems.map((item) => (
           <button
             key={item}
             type="button"
