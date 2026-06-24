@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useTransition } from "react";
 import { addExpense, getTodaysExpenses, deleteExpense } from "@/app/actions/expenses";
+import { getSettings } from "@/app/actions/settings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, X } from "lucide-react";
@@ -14,6 +15,7 @@ const QUICK_AMOUNTS = [5, 10, 20, 50];
 export default function QuickLog() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [total, setTotal] = useState(0);
+  const [dailyGoal, setDailyGoal] = useState(0);
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const nameRef = useRef<HTMLInputElement>(null);
@@ -26,7 +28,10 @@ export default function QuickLog() {
     });
   };
 
-  useEffect(refreshExpenses, []);
+  useEffect(() => {
+    refreshExpenses();
+    getSettings().then((s) => setDailyGoal(s.dailyGoal));
+  }, []);
 
   const handleSubmit = async (formData: FormData) => {
     startTransition(async () => {
@@ -66,6 +71,32 @@ export default function QuickLog() {
         <p className="mt-1 text-5xl font-bold tracking-tight">
           €{total.toFixed(2)}
         </p>
+        {dailyGoal > 0 && (
+          <div className="mx-auto mt-4 w-full max-w-xs">
+            <div className="flex items-center justify-between text-xs opacity-80">
+              <span>Goal: €{dailyGoal.toFixed(2)}</span>
+              <span>{Math.min(Math.round((total / dailyGoal) * 100), 100)}%</span>
+            </div>
+            <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-primary-foreground/20">
+              <div
+                className={`h-full rounded-full transition-all duration-300 ${
+                  total > dailyGoal ? "bg-destructive" : "bg-primary-foreground"
+                }`}
+                style={{ width: `${Math.min((total / dailyGoal) * 100, 100)}%` }}
+              />
+            </div>
+            {total > dailyGoal && (
+              <p className="mt-1 text-xs font-medium opacity-80">
+                €{(total - dailyGoal).toFixed(2)} over goal
+              </p>
+            )}
+            {total <= dailyGoal && dailyGoal - total > 0 && (
+              <p className="mt-1 text-xs opacity-60">
+                €{(dailyGoal - total).toFixed(2)} remaining
+              </p>
+            )}
+          </div>
+        )}
         {expenses.length > 0 && (
           <p className="mt-1 text-sm opacity-60">
             {expenses.length} {expenses.length === 1 ? "entry" : "entries"}

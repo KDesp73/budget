@@ -18,12 +18,14 @@ export default function SettingsPage() {
   const [loaded, setLoaded] = useState(false);
   const [salary, setSalary] = useState("");
   const [percentage, setPercentage] = useState("");
+  const [dailyGoal, setDailyGoal] = useState("");
   const [state, action, pending] = useActionState(saveSettings, undefined);
 
   useEffect(() => {
     getSettings().then((s) => {
       setSalary(String(s.monthlySalary));
       setPercentage(String(s.savingsPercentage));
+      setDailyGoal(String(s.dailyGoal));
       setLoaded(true);
     });
   }, []);
@@ -40,57 +42,71 @@ export default function SettingsPage() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Income & Savings</CardTitle>
-          <CardDescription>
-            Your monthly salary and target savings percentage
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form action={action} className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="monthly_salary" className="text-sm font-medium">
-                Monthly Salary (€)
-              </label>
-              <Input
-                id="monthly_salary"
-                name="monthly_salary"
-                type="number"
-                step="0.01"
-                value={salary}
-                onChange={(e) => setSalary(e.target.value)}
-                placeholder="0.00"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="savings_percentage" className="text-sm font-medium">
-                Savings Target (%)
-              </label>
-              <Input
-                id="savings_percentage"
-                name="savings_percentage"
-                type="number"
-                min="0"
-                max="100"
-                step="1"
-                value={percentage}
-                onChange={(e) => setPercentage(e.target.value)}
-                placeholder="20"
-                required
-              />
-            </div>
-            {state?.success && (
-              <p className="text-sm text-green-600 dark:text-green-400">
-                Settings saved
-              </p>
-            )}
-            <Button type="submit" disabled={pending}>
-              {pending ? "Saving..." : "Save"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+          <CardHeader>
+            <CardTitle>Budget</CardTitle>
+            <CardDescription>
+              Your monthly income, savings goal, and daily spending target
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form action={action} className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="monthly_salary" className="text-sm font-medium">
+                  Monthly Salary (€)
+                </label>
+                <Input
+                  id="monthly_salary"
+                  name="monthly_salary"
+                  type="number"
+                  step="0.01"
+                  value={salary}
+                  onChange={(e) => setSalary(e.target.value)}
+                  placeholder="0.00"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="savings_percentage" className="text-sm font-medium">
+                  Savings Target (%)
+                </label>
+                <Input
+                  id="savings_percentage"
+                  name="savings_percentage"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={percentage}
+                  onChange={(e) => setPercentage(e.target.value)}
+                  placeholder="20"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="daily_goal" className="text-sm font-medium">
+                  Daily Spending Goal (€)
+                </label>
+                <Input
+                  id="daily_goal"
+                  name="daily_goal"
+                  type="number"
+                  step="0.01"
+                  value={dailyGoal}
+                  onChange={(e) => setDailyGoal(e.target.value)}
+                  placeholder="0.00"
+                />
+              </div>
+              {state?.success && (
+                <p className="text-sm text-green-600 dark:text-green-400">
+                  Settings saved
+                </p>
+              )}
+              <Button type="submit" disabled={pending}>
+                {pending ? "Saving..." : "Save"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
 
       <Card>
         <CardHeader>
