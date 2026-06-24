@@ -63,6 +63,54 @@ export type DailyTotal = {
   expenses: Expense[];
 };
 
+export async function getExpensesByDateRange(
+  startDate: string,
+  endDate: string
+): Promise<DailyTotal[]> {
+  await verifySession();
+
+  const result = await db.execute(
+    `SELECT id, name, amount, type, date, created_at
+     FROM expenses
+     WHERE type = 'daily'
+       AND date >= ?
+       AND date <= ?
+     ORDER BY date ASC, created_at ASC`,
+    [startDate, endDate]
+  );
+
+  const expenses = result.rows.map((r) =>
+    toPlain(r as Record<string, unknown>)
+  );
+
+  const map = new Map<string, Expense[]>();
+  for (const e of expenses) {
+    const d = e.date ?? "";
+    if (!map.has(d)) map.set(d, []);
+    map.get(d)!.push(e);
+  }
+
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const diffDays = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  const dailyTotals: DailyTotal[] = [];
+
+  for (let offset = 0; offset < diffDays; offset++) {
+    const d = new Date(start);
+    d.setDate(d.getDate() + offset);
+    const dateStr = d.toISOString().slice(0, 10);
+    const dayExpenses = map.get(dateStr) ?? [];
+    dailyTotals.push({
+      date: dateStr,
+      day: d.getDate(),
+      total: dayExpenses.reduce((s, e) => s + e.amount, 0),
+      expenses: dayExpenses,
+    });
+  }
+
+  return dailyTotals;
+}
+
 export async function getExpensesByMonth(
   year: number,
   month: number
@@ -172,6 +220,25 @@ export async function searchExpenses(query: {
 
   const result = await db.execute(sql, params);
   return result.rows.map((r) => toPlain(r as Record<string, unknown>));
+}
+
+export async function exportDateRangeCSV(startDate: string, endDate: string): Promise<string> {
+  await verifySession();
+
+  const result = await db.execute(
+    `SELECT name, amount, type, date, created_at
+     FROM expenses
+     WHERE (type = 'daily' AND date >= ? AND date <= ?) OR (type = 'monthly')
+     ORDER BY date ASC, created_at ASC`,
+    [startDate, endDate]
+  );
+
+  const rows = result.rows.map((r) => toPlain(r as Record<string, unknown>));
+  const header = "Name,Amount,Type,Date\n";
+  const body = rows
+    .map((r) => `${r.name},${r.amount.toFixed(2)},${r.type},${r.date ?? ""}`)
+    .join("\n");
+  return header + body;
 }
 
 export async function exportMonthCSV(year: number, month: number): Promise<string> {
