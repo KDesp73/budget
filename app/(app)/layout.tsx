@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { verifySession } from "@/lib/dal";
-import { Home, Settings } from "lucide-react";
+import { Home, LayoutDashboard, Settings } from "lucide-react";
 
 export default async function AppLayout({
   children,
@@ -15,9 +15,15 @@ export default async function AppLayout({
         <Link href="/" className="text-lg font-semibold">
           Budget
         </Link>
-        <nav className="flex items-center gap-2">
+        <nav className="flex items-center gap-1">
           <Link
             href="/"
+            className="inline-flex h-7 items-center justify-center rounded-lg px-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            Log
+          </Link>
+          <Link
+            href="/dashboard"
             className="inline-flex h-7 items-center justify-center rounded-lg px-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
           >
             Dashboard
@@ -39,7 +45,14 @@ export default async function AppLayout({
           className="flex flex-col items-center gap-0.5 px-4 py-1 text-muted-foreground"
         >
           <Home className="size-5" />
-          <span className="text-[10px]">Home</span>
+          <span className="text-[10px]">Log</span>
+        </Link>
+        <Link
+          href="/dashboard"
+          className="flex flex-col items-center gap-0.5 px-4 py-1 text-muted-foreground"
+        >
+          <LayoutDashboard className="size-5" />
+          <span className="text-[10px]">Dashboard</span>
         </Link>
         <Link
           href="/settings"

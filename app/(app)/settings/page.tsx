@@ -14,21 +14,21 @@ import {
 } from "@/components/ui/card";
 import { LogOut } from "lucide-react";
 
-type Settings = {
-  monthlySalary: number;
-  savingsPercentage: number;
-};
-
 export default function SettingsPage() {
-  const [settings, setSettings] = useState<Settings>({
-    monthlySalary: 0,
-    savingsPercentage: 0,
-  });
+  const [loaded, setLoaded] = useState(false);
+  const [salary, setSalary] = useState("");
+  const [percentage, setPercentage] = useState("");
   const [state, action, pending] = useActionState(saveSettings, undefined);
 
   useEffect(() => {
-    getSettings().then(setSettings);
+    getSettings().then((s) => {
+      setSalary(String(s.monthlySalary));
+      setPercentage(String(s.savingsPercentage));
+      setLoaded(true);
+    });
   }, []);
+
+  if (!loaded) return null;
 
   return (
     <div className="mx-auto w-full max-w-lg space-y-6 p-4">
@@ -57,7 +57,8 @@ export default function SettingsPage() {
                 name="monthly_salary"
                 type="number"
                 step="0.01"
-                defaultValue={settings.monthlySalary || ""}
+                value={salary}
+                onChange={(e) => setSalary(e.target.value)}
                 placeholder="0.00"
                 required
               />
@@ -73,7 +74,8 @@ export default function SettingsPage() {
                 min="0"
                 max="100"
                 step="1"
-                defaultValue={settings.savingsPercentage || ""}
+                value={percentage}
+                onChange={(e) => setPercentage(e.target.value)}
                 placeholder="20"
                 required
               />
