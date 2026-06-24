@@ -15,6 +15,8 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Budget",
   description: "Personal budgeting application",
+  manifest: "/manifest.json",
+  appleWebApp: { capable: true, title: "Budget", statusBarStyle: "default" },
 };
 
 export default function RootLayout({

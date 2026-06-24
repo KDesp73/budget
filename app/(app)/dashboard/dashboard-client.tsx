@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { getExpensesByMonth } from "@/app/actions/expenses";
+import { getExpensesByMonth, exportMonthCSV } from "@/app/actions/expenses";
 import {
   Card,
   CardHeader,
@@ -9,6 +9,8 @@ import {
   CardDescription,
   CardContent,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
 import SpendingChart from "./spending-chart";
 import CategoryPie from "./category-pie";
 import CalendarGrid from "./calendar-grid";
@@ -61,9 +63,48 @@ export default function DashboardClient({
     (settings.monthlySalary * settings.savingsPercentage) / 100;
   const remaining = settings.monthlySalary - totalMonthly - savingsTarget;
 
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const today = new Date();
+  const currentDay = today.getMonth() + 1 === month && today.getFullYear() === year
+    ? today.getDate()
+    : daysInMonth;
+  const daysLeft = daysInMonth - currentDay;
+  const spentSoFar = data
+    .filter((d) => d.day <= currentDay)
+    .reduce((s, d) => s + d.total, 0);
+  const remainingAfterSpent = remaining - spentSoFar;
+  const dailyRemaining = daysLeft > 0 ? remainingAfterSpent / daysLeft : remainingAfterSpent;
+
+  const categoryBudgetTotals = Object.fromEntries(
+    Object.keys(settings.categoryBudgets).map((cat) => {
+      const spent = data.reduce(
+        (s, d) => s + d.expenses.filter((e) => e.name === cat).reduce((a, e) => a + e.amount, 0),
+        0
+      );
+      return [cat, spent];
+    })
+  );
+
+  const handleExport = async () => {
+    const csv = await exportMonthCSV(year, month);
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `budget-${year}-${String(month).padStart(2, "0")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-4">
-      <h1 className="text-lg font-semibold">Dashboard</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-lg font-semibold">Dashboard</h1>
+        <Button variant="outline" size="xs" onClick={handleExport}>
+          <Download className="mr-1 size-3.5" />
+          CSV
+        </Button>
+      </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Card>
@@ -110,7 +151,7 @@ export default function DashboardClient({
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
-        <div className="lg:col-span-1">
+        <div className="space-y-6 lg:col-span-1">
           <Card>
             <CardHeader>
               <CardTitle>Month Summary</CardTitle>
@@ -142,7 +183,41 @@ export default function DashboardClient({
               </div>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Remaining Budget</CardTitle>
+              <CardDescription>
+                After fixed expenses & savings
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Left this month</span>
+                <span
+                  className={`font-semibold ${remainingAfterSpent < 0 ? "text-destructive" : ""}`}
+                >
+                  €{remainingAfterSpent.toFixed(2)}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Spent so far</span>
+                <span className="font-semibold">€{spentSoFar.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">
+                  {daysLeft > 0 ? `Per day (${daysLeft}d left)` : "Per day"}
+                </span>
+                <span
+                  className={`font-semibold ${dailyRemaining < 0 ? "text-destructive" : ""}`}
+                >
+                  €{dailyRemaining.toFixed(2)}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
         </div>
+
         <div className="lg:col-span-3">
           <CalendarGrid
             data={data}
@@ -153,6 +228,40 @@ export default function DashboardClient({
           />
         </div>
       </div>
+
+      {Object.keys(settings.categoryBudgets).length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Category Budgets</CardTitle>
+            <CardDescription>Progress toward monthly category limits</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {Object.entries(settings.categoryBudgets).map(([cat, budget]) => {
+              const spent = categoryBudgetTotals[cat] ?? 0;
+              const pct = budget > 0 ? Math.min((spent / budget) * 100, 100) : 0;
+              const over = spent > budget;
+              return (
+                <div key={cat}>
+                  <div className="mb-1 flex items-center justify-between text-sm">
+                    <span>{cat}</span>
+                    <span className={over ? "font-semibold text-destructive" : "text-muted-foreground"}>
+                      €{spent.toFixed(2)} / €{budget.toFixed(0)}
+                    </span>
+                  </div>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                    <div
+                      className={`h-full rounded-full transition-all ${
+                        over ? "bg-destructive" : pct > 80 ? "bg-orange-500" : "bg-primary"
+                      }`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
