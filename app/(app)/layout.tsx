@@ -18,24 +18,28 @@ export default async function AppLayout({
         <nav className="flex items-center gap-1">
           <Link
             href="/"
+            prefetch={true}
             className="inline-flex h-7 items-center justify-center rounded-lg px-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
           >
             Log
           </Link>
           <Link
             href="/dashboard"
+            prefetch={true}
             className="inline-flex h-7 items-center justify-center rounded-lg px-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
           >
             Dashboard
           </Link>
           <Link
             href="/history"
+            prefetch={true}
             className="inline-flex h-7 items-center justify-center rounded-lg px-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
           >
             History
           </Link>
           <Link
             href="/settings"
+            prefetch={true}
             className="inline-flex h-7 items-center justify-center rounded-lg px-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
           >
             Settings

@@ -47,7 +47,23 @@ export default function SettingsPage() {
     refreshMonthly().then(() => setLoaded(true));
   }, []);
 
-  if (!loaded) return null;
+  if (!loaded) {
+    return (
+      <div className="mx-auto flex w-full max-w-lg animate-pulse flex-col gap-6 p-4">
+        <div className="h-6 w-28 rounded bg-muted" />
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="rounded-xl border p-4">
+            <div className="mb-4 h-4 w-32 rounded bg-muted" />
+            <div className="space-y-3">
+              <div className="h-9 rounded bg-muted" />
+              <div className="h-9 rounded bg-muted" />
+              <div className="h-9 w-20 rounded bg-muted" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto w-full max-w-lg space-y-6 p-4">

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useCallback } from "react";
 import { Home, LayoutDashboard, History, Settings } from "lucide-react";
 
 const LINKS = [
@@ -13,6 +14,14 @@ const LINKS = [
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const prefetch = useCallback(
+    (href: string) => {
+      router.prefetch(href);
+    },
+    [router]
+  );
 
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 flex items-center justify-around border-t bg-background py-2 md:hidden">
@@ -22,6 +31,9 @@ export default function BottomNav() {
           <Link
             key={href}
             href={href}
+            prefetch={true}
+            onMouseEnter={() => prefetch(href)}
+            onTouchStart={() => prefetch(href)}
             className={`flex flex-col items-center gap-0.5 px-4 py-1 transition-colors ${
               active ? "text-foreground" : "text-muted-foreground"
             }`}
