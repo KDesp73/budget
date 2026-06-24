@@ -161,7 +161,6 @@ export default function QuickLog({
           placeholder="What did you spend on?"
           required
           className="h-12 text-base"
-          autoFocus
         />
 
         <div className="flex gap-2">
