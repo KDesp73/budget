@@ -21,19 +21,21 @@ function heatColor(ratio: number): string {
 
 export default function CalendarGrid({
   data,
-  year,
-  month,
+  startDate,
+  endDate,
+  periodLabel,
   onPrev,
   onNext,
 }: {
   data: DailyTotal[];
-  year: number;
-  month: number;
+  startDate: string;
+  endDate: string;
+  periodLabel: string;
   onPrev: () => void;
   onNext: () => void;
 }) {
   const [mode, setMode] = useState<"separate" | "heatmap">("separate");
-  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const { confirm } = useConfirm();
 
   async function handleDelete(id: number) {
@@ -50,22 +52,32 @@ export default function CalendarGrid({
   );
 
   const dayMap = useMemo(() => {
-    const m = new Map<number, DailyTotal>();
-    for (const d of data) m.set(d.day, d);
+    const m = new Map<string, DailyTotal>();
+    for (const d of data) m.set(d.date, d);
     return m;
   }, [data]);
 
-  const firstDay = new Date(year, month - 1, 1).getDay();
-  const offset = firstDay === 0 ? 6 : firstDay - 1;
-  const daysInMonth = new Date(year, month, 0).getDate();
+  const dates = useMemo(() => {
+    const list: string[] = [];
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diff = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    for (let i = 0; i <= diff; i++) {
+      const d = new Date(start);
+      d.setDate(d.getDate() + i);
+      list.push(d.toISOString().slice(0, 10));
+    }
+    return list;
+  }, [startDate, endDate]);
 
-  const cells: (number | null)[] = Array(offset).fill(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  const firstOffset = useMemo(() => {
+    const first = new Date(dates[0]);
+    const day = first.getDay();
+    return day === 0 ? 6 : day - 1;
+  }, [dates]);
 
-  const monthName = new Date(year, month - 1).toLocaleString("default", {
-    month: "long",
-    year: "numeric",
-  });
+  const cells: (string | null)[] = Array(firstOffset).fill(null);
+  for (const dateStr of dates) cells.push(dateStr);
 
   return (
     <Card>
@@ -101,8 +113,8 @@ export default function CalendarGrid({
           <Button variant="ghost" size="xs" onClick={onPrev}>
             <ChevronLeft className="size-4" />
           </Button>
-          <span className="min-w-[120px] text-center text-sm font-medium">
-            {monthName}
+          <span className="min-w-[200px] text-center text-sm font-medium">
+            {periodLabel}
           </span>
           <Button variant="ghost" size="xs" onClick={onNext}>
             <ChevronRight className="size-4" />
@@ -119,21 +131,22 @@ export default function CalendarGrid({
               {d}
             </div>
           ))}
-          {cells.map((day, i) => {
-            if (day === null) return <div key={`empty-${i}`} />;
+          {cells.map((dateStr, i) => {
+            if (dateStr === null) return <div key={`empty-${i}`} />;
 
-            const info = dayMap.get(day);
+            const dayNum = new Date(dateStr).getDate();
+            const info = dayMap.get(dateStr);
             const amount = info?.total ?? 0;
 
             if (mode === "heatmap") {
               return (
                 <button
                   type="button"
-                  key={day}
-                  onClick={() => setSelectedDay(day)}
+                  key={dateStr}
+                  onClick={() => setSelectedDay(dateStr === selectedDay ? null : dateStr)}
                   className={`flex aspect-square flex-col items-center justify-center rounded-lg text-xs transition-colors ${heatColor(amount / maxTotal)}`}
                 >
-                  <span className="font-medium">{day}</span>
+                  <span className="font-medium">{dayNum}</span>
                   {amount > 0 && (
                     <span className="mt-0.5 text-[10px] leading-none">
                       €{amount.toFixed(0)}
@@ -146,11 +159,11 @@ export default function CalendarGrid({
             return (
               <button
                 type="button"
-                key={day}
-                onClick={() => setSelectedDay(day)}
+                key={dateStr}
+                onClick={() => setSelectedDay(dateStr === selectedDay ? null : dateStr)}
                 className="flex aspect-square flex-col items-center justify-center rounded-lg border bg-background"
               >
-                <span className="text-sm font-medium">{day}</span>
+                <span className="text-sm font-medium">{dayNum}</span>
                 {amount > 0 ? (
                   <span className="mt-0.5 text-[10px] font-semibold tabular-nums text-muted-foreground">
                     €{amount.toFixed(0)}
@@ -167,7 +180,6 @@ export default function CalendarGrid({
 
         {selectedDay !== null && (() => {
           const info = dayMap.get(selectedDay);
-          const dateStr = info?.date ?? `${year}-${String(month).padStart(2, "0")}-${String(selectedDay).padStart(2, "0")}`;
           const expenses = info?.expenses ?? [];
 
           return (
@@ -175,7 +187,7 @@ export default function CalendarGrid({
               <div className="rounded-lg border bg-card p-3 shadow-sm">
                 <div className="mb-2 flex items-center justify-between">
                   <span className="text-sm font-semibold">
-                    {new Date(dateStr).toLocaleDateString("default", {
+                    {new Date(selectedDay).toLocaleDateString("default", {
                       weekday: "short",
                       month: "short",
                       day: "numeric",

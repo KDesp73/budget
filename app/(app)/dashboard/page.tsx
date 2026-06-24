@@ -1,25 +1,25 @@
 import { verifySession } from "@/lib/dal";
-import { getExpensesByMonth, getExpenses } from "@/app/actions/expenses";
+import { getExpensesByDateRange, getExpenses } from "@/app/actions/expenses";
 import { getSettings } from "@/app/actions/settings";
+import { getCurrentBudgetPeriod, getBudgetDateRange } from "@/lib/budget";
 import DashboardClient from "./dashboard-client";
 
 export default async function Dashboard() {
   await verifySession();
 
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth() + 1;
+  const settings = await getSettings();
+  const period = getCurrentBudgetPeriod(settings.paydayDay);
+  const { startDate, endDate } = getBudgetDateRange(settings.paydayDay, period.year, period.month);
 
-  const [data, settings, monthlyExpenses] = await Promise.all([
-    getExpensesByMonth(year, month),
-    getSettings(),
+  const [data, monthlyExpenses] = await Promise.all([
+    getExpensesByDateRange(startDate, endDate),
     getExpenses("monthly"),
   ]);
 
   return (
     <DashboardClient
-      initialYear={year}
-      initialMonth={month}
+      initialYear={period.year}
+      initialMonth={period.month}
       initialData={data}
       initialSettings={settings}
       initialMonthly={monthlyExpenses}

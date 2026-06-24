@@ -29,6 +29,7 @@ export default function SettingsPage() {
   const [salary, setSalary] = useState("");
   const [percentage, setPercentage] = useState("");
   const [dailyGoal, setDailyGoal] = useState("");
+  const [paydayDay, setPaydayDay] = useState("1");
   const [monthlyExpenses, setMonthlyExpenses] = useState<Expense[]>([]);
   const [quickItems, setQuickItems] = useState<string[]>([]);
   const [newItem, setNewItem] = useState("");
@@ -66,6 +67,7 @@ export default function SettingsPage() {
       setSalary(String(s.monthlySalary));
       setPercentage(String(s.savingsPercentage));
       setDailyGoal(String(s.dailyGoal));
+      setPaydayDay(String(s.paydayDay));
       setQuickItems(s.quickItems);
       setQuickAmounts(s.quickAmounts);
       setCategoryBudgets(s.categoryBudgets);
@@ -154,6 +156,25 @@ export default function SettingsPage() {
                   onChange={(e) => setDailyGoal(e.target.value)}
                   placeholder="0.00"
                 />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="payday_day" className="text-sm font-medium">
+                  Payday Day of Month
+                </label>
+                <Input
+                  id="payday_day"
+                  name="payday_day"
+                  type="number"
+                  min="1"
+                  max="28"
+                  step="1"
+                  value={paydayDay}
+                  onChange={(e) => setPaydayDay(e.target.value)}
+                  placeholder="1"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Your budget resets on this day each month (1–28). Default: 1st
+                </p>
               </div>
               {state?.success && (
                 <p className="text-sm text-green-600 dark:text-green-400">

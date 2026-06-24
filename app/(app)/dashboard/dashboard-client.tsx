@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { getExpensesByMonth, exportMonthCSV } from "@/app/actions/expenses";
+import { useState, useCallback, useMemo } from "react";
+import { getExpensesByDateRange, exportDateRangeCSV } from "@/app/actions/expenses";
 import {
   Card,
   CardHeader,
@@ -17,6 +17,7 @@ import CategoryPie from "./category-pie";
 import CalendarGrid from "./calendar-grid";
 import type { DailyTotal, Expense } from "@/app/actions/expenses";
 import type { Settings } from "@/app/actions/settings";
+import { getBudgetDateRange, getPeriodLabel, getDaysInBudgetPeriod } from "@/lib/budget";
 
 export default function DashboardClient({
   initialYear,
@@ -36,18 +37,20 @@ export default function DashboardClient({
   const [data, setData] = useState(initialData);
   const [settings] = useState(initialSettings);
   const [monthlyExpenses] = useState(initialMonthly);
+  const paydayDay = settings.paydayDay || 1;
 
-  const fetchMonth = useCallback(async (y: number, m: number) => {
-    const result = await getExpensesByMonth(y, m);
+  const fetchPeriod = useCallback(async (y: number, m: number) => {
+    const { startDate, endDate } = getBudgetDateRange(paydayDay, y, m);
+    const result = await getExpensesByDateRange(startDate, endDate);
     setData(result);
-  }, []);
+  }, [paydayDay]);
 
   const goPrev = () => {
     const newMonth = month === 1 ? 12 : month - 1;
     const newYear = month === 1 ? year - 1 : year;
     setMonth(newMonth);
     setYear(newYear);
-    fetchMonth(newYear, newMonth);
+    fetchPeriod(newYear, newMonth);
   };
 
   const goNext = () => {
@@ -55,23 +58,32 @@ export default function DashboardClient({
     const newYear = month === 12 ? year + 1 : year;
     setMonth(newMonth);
     setYear(newYear);
-    fetchMonth(newYear, newMonth);
+    fetchPeriod(newYear, newMonth);
   };
 
+  const { startDate, endDate } = useMemo(() => getBudgetDateRange(paydayDay, year, month), [paydayDay, year, month]);
+  const periodLabel = useMemo(() => getPeriodLabel(paydayDay, year, month), [paydayDay, year, month]);
+  const daysInPeriod = useMemo(() => getDaysInBudgetPeriod(paydayDay, year, month), [paydayDay, year, month]);
+
   const totalMonthly = monthlyExpenses.reduce((sum, e) => sum + e.amount, 0);
-  const totalThisMonth = data.reduce((sum, d) => sum + d.total, 0);
+  const totalThisPeriod = data.reduce((sum, d) => sum + d.total, 0);
   const savingsTarget =
     (settings.monthlySalary * settings.savingsPercentage) / 100;
   const remaining = settings.monthlySalary - totalMonthly - savingsTarget;
 
-  const daysInMonth = new Date(year, month, 0).getDate();
   const today = new Date();
-  const currentDay = today.getMonth() + 1 === month && today.getFullYear() === year
-    ? today.getDate()
-    : daysInMonth;
-  const daysLeft = daysInMonth - currentDay;
+  const periodStart = new Date(startDate);
+  const periodEnd = new Date(endDate);
+  const isCurrentPeriod = today >= periodStart && today <= periodEnd;
+  const currentDayOffset = isCurrentPeriod
+    ? Math.round((today.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24)) + 1
+    : daysInPeriod;
+  const daysLeft = daysInPeriod - currentDayOffset;
   const spentSoFar = data
-    .filter((d) => d.day <= currentDay)
+    .filter((d) => {
+      const dDate = new Date(d.date);
+      return dDate >= periodStart && dDate <= today;
+    })
     .reduce((s, d) => s + d.total, 0);
   const remainingAfterSpent = remaining - spentSoFar;
   const dailyRemaining = daysLeft > 0 ? remainingAfterSpent / daysLeft : remainingAfterSpent;
@@ -87,12 +99,12 @@ export default function DashboardClient({
   );
 
   const handleExport = async () => {
-    const csv = await exportMonthCSV(year, month);
+    const csv = await exportDateRangeCSV(startDate, endDate);
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `budget-${year}-${String(month).padStart(2, "0")}.csv`;
+    a.download = `budget-${startDate}-${endDate}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -121,10 +133,13 @@ export default function DashboardClient({
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-4">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold">Dashboard</h1>
-        <Button variant="outline" size="xs" onClick={handleExport}>
-          <Download className="mr-1 size-3.5" />
-          CSV
-        </Button>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">{periodLabel}</span>
+          <Button variant="outline" size="xs" onClick={handleExport}>
+            <Download className="mr-1 size-3.5" />
+            CSV
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -175,7 +190,7 @@ export default function DashboardClient({
         <div className="space-y-6 lg:col-span-1">
           <Card>
             <CardHeader>
-              <CardTitle>Month Summary</CardTitle>
+              <CardTitle>Period Summary</CardTitle>
               <CardDescription>
                 {data.filter((d) => d.total > 0).length} days with expenses
               </CardDescription>
@@ -183,14 +198,14 @@ export default function DashboardClient({
             <CardContent className="space-y-3">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Total spent</span>
-                <span className="font-semibold">€{totalThisMonth.toFixed(2)}</span>
+                <span className="font-semibold">€{totalThisPeriod.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Daily average</span>
                 <span className="font-semibold">
                   €
                   {(
-                    totalThisMonth /
+                    totalThisPeriod /
                     Math.max(data.filter((d) => d.total > 0).length, 1)
                   ).toFixed(2)}
                 </span>
@@ -214,7 +229,7 @@ export default function DashboardClient({
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Left this month</span>
+                <span className="text-muted-foreground">Left this period</span>
                 <span
                   className={`font-semibold ${remainingAfterSpent < 0 ? "text-destructive" : ""}`}
                 >
@@ -242,8 +257,9 @@ export default function DashboardClient({
         <div className="lg:col-span-3">
           <CalendarGrid
             data={data}
-            year={year}
-            month={month}
+            startDate={startDate}
+            endDate={endDate}
+            periodLabel={periodLabel}
             onPrev={goPrev}
             onNext={goNext}
           />
