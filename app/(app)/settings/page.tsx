@@ -19,10 +19,12 @@ import {
   CardDescription,
   CardContent,
 } from "@/components/ui/card";
+import { useConfirm } from "@/components/confirm-dialog";
 import { Edit, LogOut, Plus, X, Sun, Moon } from "lucide-react";
 import type { Expense } from "@/app/actions/expenses";
 
 export default function SettingsPage() {
+  const { confirm } = useConfirm();
   const [loaded, setLoaded] = useState(false);
   const [salary, setSalary] = useState("");
   const [percentage, setPercentage] = useState("");
@@ -248,7 +250,7 @@ export default function SettingsPage() {
                         <button
                           type="button"
                           onClick={async () => {
-                            if (window.confirm("Delete this expense?")) {
+                            if (await confirm({ title: "Delete expense", message: "Delete this expense?", destructive: true, confirmLabel: "Delete" })) {
                               const fd = new FormData();
                               fd.set("id", String(expense.id));
                               await deleteExpense(fd);
