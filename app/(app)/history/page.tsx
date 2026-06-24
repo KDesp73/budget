@@ -18,6 +18,7 @@ import { X, Check, Pencil, Search } from "lucide-react";
 import type { Expense } from "@/app/actions/expenses";
 
 export default function HistoryPage() {
+  const [loaded, setLoaded] = useState(false);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [search, setSearch] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -36,6 +37,7 @@ export default function HistoryPage() {
         type,
       });
       setExpenses(result);
+      setLoaded(true);
     })();
   }, [search, startDate, endDate, type]);
 
@@ -70,6 +72,31 @@ export default function HistoryPage() {
     await deleteExpense(fd);
     refresh();
   };
+
+  if (!loaded) {
+    return (
+      <div className="mx-auto flex w-full max-w-2xl animate-pulse flex-col gap-6 p-4">
+        <div className="h-6 w-20 rounded bg-muted" />
+        <div className="rounded-xl border p-4">
+          <div className="space-y-3">
+            <div className="h-9 rounded bg-muted" />
+            <div className="flex gap-2">
+              <div className="h-9 flex-1 rounded bg-muted" />
+              <div className="h-9 flex-1 rounded bg-muted" />
+            </div>
+          </div>
+        </div>
+        <div className="rounded-xl border p-4">
+          <div className="mb-4 h-4 w-28 rounded bg-muted" />
+          <div className="space-y-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="h-10 rounded bg-muted" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-4">
