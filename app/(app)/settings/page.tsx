@@ -2,6 +2,11 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { saveSettings, getSettings } from "@/app/actions/settings";
+import {
+  getExpenses,
+  addExpense,
+  deleteExpense,
+} from "@/app/actions/expenses";
 import { logout } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,21 +18,26 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { LogOut } from "lucide-react";
+import type { Expense } from "@/app/actions/expenses";
 
 export default function SettingsPage() {
   const [loaded, setLoaded] = useState(false);
   const [salary, setSalary] = useState("");
   const [percentage, setPercentage] = useState("");
   const [dailyGoal, setDailyGoal] = useState("");
+  const [monthlyExpenses, setMonthlyExpenses] = useState<Expense[]>([]);
   const [state, action, pending] = useActionState(saveSettings, undefined);
+
+  const refreshMonthly = () =>
+    getExpenses("monthly").then(setMonthlyExpenses);
 
   useEffect(() => {
     getSettings().then((s) => {
       setSalary(String(s.monthlySalary));
       setPercentage(String(s.savingsPercentage));
       setDailyGoal(String(s.dailyGoal));
-      setLoaded(true);
     });
+    refreshMonthly().then(() => setLoaded(true));
   }, []);
 
   if (!loaded) return null;
@@ -107,6 +117,69 @@ export default function SettingsPage() {
             </form>
           </CardContent>
         </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Monthly Expenses</CardTitle>
+          <CardDescription>Recurring fixed expenses each month</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <form
+            action={addExpense}
+            onSubmit={() => setTimeout(refreshMonthly, 100)}
+            className="flex gap-2"
+          >
+            <input type="hidden" name="type" value="monthly" />
+            <Input
+              name="name"
+              placeholder="Name (e.g. Rent)"
+              required
+              className="flex-1"
+            />
+            <Input
+              name="amount"
+              type="number"
+              step="0.01"
+              placeholder="Amount"
+              required
+              className="w-28"
+            />
+            <Button type="submit">Add</Button>
+          </form>
+          {monthlyExpenses.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No monthly expenses added yet
+            </p>
+          ) : (
+            <div className="space-y-1">
+              {monthlyExpenses.map((expense) => (
+                <div
+                  key={expense.id}
+                  className="flex items-center justify-between rounded-lg border px-3 py-2"
+                >
+                  <span className="text-sm">{expense.name}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium">
+                      €{expense.amount.toFixed(2)}
+                    </span>
+                    <form action={deleteExpense}>
+                      <input type="hidden" name="id" value={expense.id} />
+                      <Button
+                        type="submit"
+                        variant="ghost"
+                        size="xs"
+                        className="text-muted-foreground hover:text-destructive"
+                      >
+                        ✕
+                      </Button>
+                    </form>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
