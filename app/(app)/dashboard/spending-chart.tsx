@@ -33,7 +33,13 @@ export default function SpendingChart({
       <CardContent>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={chartData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+            <defs>
+              <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="hsl(239, 84%, 67%)" />
+                <stop offset="100%" stopColor="hsl(271, 76%, 53%)" />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
             <XAxis
               dataKey="day"
               tickLine={false}
@@ -54,9 +60,9 @@ export default function SpendingChart({
             />
             <Bar
               dataKey="amount"
-              fill="hsl(var(--primary))"
+              fill="url(#barGradient)"
               radius={[4, 4, 0, 0]}
-              maxBarSize={20}
+              maxBarSize={24}
             />
           </BarChart>
         </ResponsiveContainer>

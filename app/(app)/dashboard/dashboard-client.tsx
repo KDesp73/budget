@@ -10,6 +10,7 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import SpendingChart from "./spending-chart";
+import CategoryPie from "./category-pie";
 import CalendarGrid from "./calendar-grid";
 import type { DailyTotal, Expense } from "@/app/actions/expenses";
 import type { Settings } from "@/app/actions/settings";
@@ -61,10 +62,10 @@ export default function DashboardClient({
   const remaining = settings.monthlySalary - totalMonthly - savingsTarget;
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-4">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-4">
       <h1 className="text-lg font-semibold">Dashboard</h1>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Card>
           <CardHeader>
             <CardDescription>Monthly Salary</CardDescription>
@@ -101,48 +102,57 @@ export default function DashboardClient({
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <SpendingChart data={data} />
-        <Card>
-          <CardHeader>
-            <CardTitle>Month Summary</CardTitle>
-            <CardDescription>
-              {data.filter((d) => d.total > 0).length} days with expenses
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Total spent</span>
-              <span className="font-semibold">€{totalThisMonth.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Daily average</span>
-              <span className="font-semibold">
-                €
-                {(
-                  totalThisMonth /
-                  Math.max(data.filter((d) => d.total > 0).length, 1)
-                ).toFixed(2)}
-              </span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Biggest day</span>
-              <span className="font-semibold">
-                €
-                {Math.max(...data.map((d) => d.total), 0).toFixed(2)}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <SpendingChart data={data} />
+        </div>
+        <CategoryPie data={data} />
       </div>
 
-      <CalendarGrid
-        data={data}
-        year={year}
-        month={month}
-        onPrev={goPrev}
-        onNext={goNext}
-      />
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
+        <div className="lg:col-span-1">
+          <Card>
+            <CardHeader>
+              <CardTitle>Month Summary</CardTitle>
+              <CardDescription>
+                {data.filter((d) => d.total > 0).length} days with expenses
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Total spent</span>
+                <span className="font-semibold">€{totalThisMonth.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Daily average</span>
+                <span className="font-semibold">
+                  €
+                  {(
+                    totalThisMonth /
+                    Math.max(data.filter((d) => d.total > 0).length, 1)
+                  ).toFixed(2)}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Biggest day</span>
+                <span className="font-semibold">
+                  €
+                  {Math.max(...data.map((d) => d.total), 0).toFixed(2)}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        <div className="lg:col-span-3">
+          <CalendarGrid
+            data={data}
+            year={year}
+            month={month}
+            onPrev={goPrev}
+            onNext={goNext}
+          />
+        </div>
+      </div>
     </div>
   );
 }
