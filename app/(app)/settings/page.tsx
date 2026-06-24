@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import { saveSettings, getSettings } from "@/app/actions/settings";
+import { saveSettings, getSettings, saveQuickItems } from "@/app/actions/settings";
 import {
   getExpenses,
   addExpense,
@@ -17,7 +17,7 @@ import {
   CardDescription,
   CardContent,
 } from "@/components/ui/card";
-import { LogOut } from "lucide-react";
+import { LogOut, Plus, X } from "lucide-react";
 import type { Expense } from "@/app/actions/expenses";
 
 export default function SettingsPage() {
@@ -26,6 +26,8 @@ export default function SettingsPage() {
   const [percentage, setPercentage] = useState("");
   const [dailyGoal, setDailyGoal] = useState("");
   const [monthlyExpenses, setMonthlyExpenses] = useState<Expense[]>([]);
+  const [quickItems, setQuickItems] = useState<string[]>([]);
+  const [newItem, setNewItem] = useState("");
   const [state, action, pending] = useActionState(saveSettings, undefined);
 
   const refreshMonthly = () =>
@@ -36,6 +38,7 @@ export default function SettingsPage() {
       setSalary(String(s.monthlySalary));
       setPercentage(String(s.savingsPercentage));
       setDailyGoal(String(s.dailyGoal));
+      setQuickItems(s.quickItems);
     });
     refreshMonthly().then(() => setLoaded(true));
   }, []);
@@ -177,6 +180,74 @@ export default function SettingsPage() {
                 </div>
               ))}
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Quick Categories</CardTitle>
+          <CardDescription>
+            Preset labels shown on the home page for quick logging
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex gap-2">
+            <Input
+              value={newItem}
+              onChange={(e) => setNewItem(e.target.value)}
+              placeholder="Add category..."
+              className="flex-1"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  if (newItem.trim() && !quickItems.includes(newItem.trim())) {
+                    const next = [...quickItems, newItem.trim()];
+                    setQuickItems(next);
+                    saveQuickItems(next);
+                    setNewItem("");
+                  }
+                }
+              }}
+            />
+            <Button
+              type="button"
+              disabled={!newItem.trim()}
+              onClick={() => {
+                if (newItem.trim() && !quickItems.includes(newItem.trim())) {
+                  const next = [...quickItems, newItem.trim()];
+                  setQuickItems(next);
+                  saveQuickItems(next);
+                  setNewItem("");
+                }
+              }}
+            >
+              <Plus className="size-4" />
+            </Button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {quickItems.map((item, i) => (
+              <div
+                key={item}
+                className="group flex items-center gap-1.5 rounded-full border bg-background px-3 py-1.5 text-sm"
+              >
+                <span>{item}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = quickItems.filter((_, j) => j !== i);
+                    setQuickItems(next);
+                    saveQuickItems(next);
+                  }}
+                  className="text-muted-foreground hover:text-destructive"
+                >
+                  <X className="size-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+          {quickItems.length === 0 && (
+            <p className="text-sm text-muted-foreground">No categories added</p>
           )}
         </CardContent>
       </Card>
