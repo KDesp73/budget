@@ -1,132 +1,182 @@
-import { verifySession } from "@/lib/dal";
-import { getSettings } from "@/app/actions/settings";
-import { getExpenses, addExpense, deleteExpense } from "@/app/actions/expenses";
+"use client";
+
+import { useState, useEffect, useRef, useTransition } from "react";
+import { addExpense, getTodaysExpenses, deleteExpense } from "@/app/actions/expenses";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@/components/ui/card";
+import { Plus, X } from "lucide-react";
+import type { Expense } from "@/app/actions/expenses";
 
-export default async function Dashboard() {
-  await verifySession();
+const QUICK_ITEMS = ["Coffee", "Lunch", "Dinner", "Transport", "Snack", "Groceries"];
 
-  const [settings, expenses] = await Promise.all([
-    getSettings(),
-    getExpenses(),
-  ]);
+const QUICK_AMOUNTS = [5, 10, 20, 50];
 
-  const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
-  const savingsTarget = (settings.monthlySalary * settings.savingsPercentage) / 100;
-  const remaining = settings.monthlySalary - totalExpenses - savingsTarget;
+export default function QuickLog() {
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [total, setTotal] = useState(0);
+  const [name, setName] = useState("");
+  const [amount, setAmount] = useState("");
+  const nameRef = useRef<HTMLInputElement>(null);
+  const [pending, startTransition] = useTransition();
+
+  const refreshExpenses = () => {
+    getTodaysExpenses().then((list) => {
+      setExpenses(list);
+      setTotal(list.reduce((s, e) => s + e.amount, 0));
+    });
+  };
+
+  useEffect(refreshExpenses, []);
+
+  const handleSubmit = async (formData: FormData) => {
+    startTransition(async () => {
+      await addExpense(formData);
+      setName("");
+      setAmount("");
+      nameRef.current?.focus();
+      refreshExpenses();
+    });
+  };
+
+  const handleDelete = async (id: number) => {
+    const formData = new FormData();
+    formData.set("id", String(id));
+    await deleteExpense(formData);
+    const list = await getTodaysExpenses();
+    setExpenses(list);
+    setTotal(list.reduce((s, e) => s + e.amount, 0));
+  };
+
+  const handleQuickItem = (item: string) => {
+    setName(item);
+    setTimeout(() => {
+      const el = document.getElementById("amount-input") as HTMLInputElement;
+      el?.focus();
+    }, 50);
+  };
+
+  const handleQuickAmount = (val: number) => {
+    setAmount(String(val));
+  };
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-4">
-
-      <div className="grid grid-cols-2 gap-3">
-        <Card>
-          <CardHeader>
-            <CardDescription>Monthly Salary</CardDescription>
-            <CardTitle className="text-2xl">
-              €{settings.monthlySalary.toFixed(2)}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Expenses</CardDescription>
-            <CardTitle className="text-2xl">
-              €{totalExpenses.toFixed(2)}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Savings Target ({settings.savingsPercentage}%)</CardDescription>
-            <CardTitle className="text-2xl">
-              €{savingsTarget.toFixed(2)}
-            </CardTitle>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardDescription>Remaining</CardDescription>
-            <CardTitle
-              className={`text-2xl ${remaining < 0 ? "text-destructive" : ""}`}
-            >
-              €{remaining.toFixed(2)}
-            </CardTitle>
-          </CardHeader>
-        </Card>
+    <div className="mx-auto flex w-full max-w-lg flex-col gap-6 p-4">
+      <div className="rounded-xl bg-primary px-6 py-8 text-center text-primary-foreground">
+        <p className="text-sm font-medium opacity-80">Today&apos;s Spending</p>
+        <p className="mt-1 text-5xl font-bold tracking-tight">
+          €{total.toFixed(2)}
+        </p>
+        {expenses.length > 0 && (
+          <p className="mt-1 text-sm opacity-60">
+            {expenses.length} {expenses.length === 1 ? "entry" : "entries"}
+          </p>
+        )}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Add Expense</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form action={addExpense} className="flex gap-2">
+      <form action={handleSubmit} className="space-y-4">
+        <input type="hidden" name="type" value="daily" />
+        <input
+          type="hidden"
+          name="date"
+          value={new Date().toISOString().slice(0, 10)}
+        />
+
+        <Input
+          ref={nameRef}
+          name="name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="What did you spend on?"
+          required
+          className="h-12 text-base"
+          autoFocus
+        />
+
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base text-muted-foreground">
+              €
+            </span>
             <Input
-              name="name"
-              placeholder="Name (e.g. Rent)"
-              required
-              className="flex-1"
-            />
-            <Input
+              id="amount-input"
               name="amount"
               type="number"
               step="0.01"
-              placeholder="Amount"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="0.00"
               required
-              className="w-28"
+              className="h-12 pl-7 text-lg"
             />
-            <Button type="submit">Add</Button>
-          </form>
-        </CardContent>
-      </Card>
+          </div>
+          <Button
+            type="submit"
+            disabled={pending || !name || !amount}
+            className="h-12 px-6 text-base"
+          >
+            {pending ? (
+              "..."
+            ) : (
+              <>
+                <Plus className="mr-1 size-5" />
+                Log
+              </>
+            )}
+          </Button>
+        </div>
+      </form>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Monthly Expenses</CardTitle>
-        </CardHeader>
-        {expenses.length === 0 ? (
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              No expenses added yet
-            </p>
-          </CardContent>
-        ) : (
-          <CardContent className="space-y-1">
-            {expenses.map((expense) => (
-              <div
-                key={expense.id}
-                className="flex items-center justify-between rounded-lg border px-3 py-2"
-              >
-                <span className="text-sm">{expense.name}</span>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">
-                    €{expense.amount.toFixed(2)}
-                  </span>
-                  <form action={deleteExpense}>
-                    <input type="hidden" name="id" value={expense.id} />
-                    <Button
-                      type="submit"
-                      variant="ghost"
-                      size="xs"
-                      className="text-muted-foreground hover:text-destructive"
-                    >
-                      ✕
-                    </Button>
-                  </form>
-                </div>
+      <div className="flex flex-wrap gap-1.5">
+        {QUICK_AMOUNTS.map((val) => (
+          <button
+            key={val}
+            type="button"
+            onClick={() => handleQuickAmount(val)}
+            className="rounded-lg border bg-background px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            +€{val}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap gap-1.5">
+        {QUICK_ITEMS.map((item) => (
+          <button
+            key={item}
+            type="button"
+            onClick={() => handleQuickItem(item)}
+            className="rounded-full border bg-background px-4 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            {item}
+          </button>
+        ))}
+      </div>
+
+      {expenses.length > 0 && (
+        <div className="space-y-1">
+          <p className="text-sm font-medium text-muted-foreground">Today</p>
+          {expenses.map((expense) => (
+            <div
+              key={expense.id}
+              className="flex items-center justify-between rounded-lg border px-4 py-3"
+            >
+              <span className="text-sm font-medium">{expense.name}</span>
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-semibold tabular-nums">
+                  €{expense.amount.toFixed(2)}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(expense.id)}
+                  className="text-muted-foreground hover:text-destructive"
+                >
+                  <X className="size-4" />
+                </button>
               </div>
-            ))}
-          </CardContent>
-        )}
-      </Card>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

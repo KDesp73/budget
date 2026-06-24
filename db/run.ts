@@ -15,8 +15,18 @@ async function main() {
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     amount REAL NOT NULL,
+    type TEXT NOT NULL DEFAULT 'daily',
+    date TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   )`);
+
+  try {
+    await db.execute("ALTER TABLE expenses ADD COLUMN type TEXT NOT NULL DEFAULT 'daily'");
+  } catch {}
+
+  try {
+    await db.execute("ALTER TABLE expenses ADD COLUMN date TEXT");
+  } catch {}
 
   console.log("Database setup complete");
 }
