@@ -9,16 +9,18 @@ export type Settings = {
   savingsPercentage: number;
   dailyGoal: number;
   quickItems: string[];
+  quickAmounts: number[];
   categoryBudgets: Record<string, number>;
 };
 
 const DEFAULT_QUICK_ITEMS = ["Coffee", "Lunch", "Dinner", "Transport", "Snack", "Groceries"];
+const DEFAULT_QUICK_AMOUNTS = [5, 10, 20, 50];
 
 export async function getSettings(): Promise<Settings> {
   await verifySession();
 
   const rows = await db.execute(
-    "SELECT key, value FROM settings WHERE key IN ('monthly_salary', 'savings_percentage', 'daily_goal', 'quick_items', 'category_budgets')"
+    "SELECT key, value FROM settings WHERE key IN ('monthly_salary', 'savings_percentage', 'daily_goal', 'quick_items', 'quick_amounts', 'category_budgets')"
   );
 
   const map = new Map(rows.rows.map((r: Record<string, unknown>) => [r.key as string, r.value as string]));
@@ -28,6 +30,7 @@ export async function getSettings(): Promise<Settings> {
     savingsPercentage: map.has("savings_percentage") ? Number(map.get("savings_percentage")) : 0,
     dailyGoal: map.has("daily_goal") ? Number(map.get("daily_goal")) : 0,
     quickItems: map.has("quick_items") ? JSON.parse(map.get("quick_items")!) : DEFAULT_QUICK_ITEMS,
+    quickAmounts: map.has("quick_amounts") ? JSON.parse(map.get("quick_amounts")!) : DEFAULT_QUICK_AMOUNTS,
     categoryBudgets: map.has("category_budgets") ? JSON.parse(map.get("category_budgets")!) : {},
   };
 }
@@ -54,6 +57,20 @@ export async function saveQuickItems(items: string[]) {
   await db.execute(
     "INSERT INTO settings (key, value) VALUES ('quick_items', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
     [JSON.stringify(items)]
+  );
+
+  revalidatePath("/");
+  revalidatePath("/settings");
+
+  return { success: true };
+}
+
+export async function saveQuickAmounts(amounts: number[]) {
+  await verifySession();
+
+  await db.execute(
+    "INSERT INTO settings (key, value) VALUES ('quick_amounts', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+    [JSON.stringify(amounts)]
   );
 
   revalidatePath("/");

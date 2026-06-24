@@ -1,13 +1,15 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import { saveSettings, getSettings, saveQuickItems, saveCategoryBudgets } from "@/app/actions/settings";
+import { saveSettings, getSettings, saveQuickItems, saveQuickAmounts, saveCategoryBudgets } from "@/app/actions/settings";
 import {
   getExpenses,
   addExpense,
   deleteExpense,
+  updateExpense,
 } from "@/app/actions/expenses";
 import { logout } from "@/app/actions/auth";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -17,7 +19,7 @@ import {
   CardDescription,
   CardContent,
 } from "@/components/ui/card";
-import { LogOut, Plus, X } from "lucide-react";
+import { Edit, LogOut, Plus, X, Sun, Moon } from "lucide-react";
 import type { Expense } from "@/app/actions/expenses";
 
 export default function SettingsPage() {
@@ -28,13 +30,34 @@ export default function SettingsPage() {
   const [monthlyExpenses, setMonthlyExpenses] = useState<Expense[]>([]);
   const [quickItems, setQuickItems] = useState<string[]>([]);
   const [newItem, setNewItem] = useState("");
+  const [quickAmounts, setQuickAmounts] = useState<number[]>([]);
+  const [newAmount, setNewAmount] = useState("");
+  const [darkMode, setDarkMode] = useState(() =>
+    typeof document !== "undefined" && document.documentElement.classList.contains("dark")
+  );
   const [categoryBudgets, setCategoryBudgets] = useState<Record<string, number>>({});
   const [budgetCategory, setBudgetCategory] = useState("");
   const [budgetAmount, setBudgetAmount] = useState("");
+  const [editingMonthly, setEditingMonthly] = useState<number | null>(null);
+  const [editMonthlyName, setEditMonthlyName] = useState("");
+  const [editMonthlyAmount, setEditMonthlyAmount] = useState("");
   const [state, action, pending] = useActionState(saveSettings, undefined);
 
   const refreshMonthly = () =>
     getExpenses("monthly").then(setMonthlyExpenses);
+
+  const startEditMonthly = (expense: Expense) => {
+    setEditingMonthly(expense.id);
+    setEditMonthlyName(expense.name);
+    setEditMonthlyAmount(String(expense.amount));
+  };
+
+  const saveEditMonthly = async (id: number) => {
+    await updateExpense(id, { name: editMonthlyName, amount: Number(editMonthlyAmount) });
+    setEditingMonthly(null);
+    refreshMonthly();
+    toast.success("Expense updated");
+  };
 
   useEffect(() => {
     getSettings().then((s) => {
@@ -42,6 +65,7 @@ export default function SettingsPage() {
       setPercentage(String(s.savingsPercentage));
       setDailyGoal(String(s.dailyGoal));
       setQuickItems(s.quickItems);
+      setQuickAmounts(s.quickAmounts);
       setCategoryBudgets(s.categoryBudgets);
     });
     refreshMonthly().then(() => setLoaded(true));
@@ -180,23 +204,65 @@ export default function SettingsPage() {
                   key={expense.id}
                   className="flex items-center justify-between rounded-lg border px-3 py-2"
                 >
-                  <span className="text-sm">{expense.name}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">
-                      €{expense.amount.toFixed(2)}
-                    </span>
-                    <form action={deleteExpense}>
-                      <input type="hidden" name="id" value={expense.id} />
-                      <Button
-                        type="submit"
-                        variant="ghost"
-                        size="xs"
-                        className="text-muted-foreground hover:text-destructive"
-                      >
-                        ✕
+                  {editingMonthly === expense.id ? (
+                    <div className="flex w-full items-center gap-2">
+                      <Input
+                        value={editMonthlyName}
+                        onChange={(e) => setEditMonthlyName(e.target.value)}
+                        placeholder="Name"
+                        className="flex-1"
+                      />
+                      <Input
+                        value={editMonthlyAmount}
+                        onChange={(e) => setEditMonthlyAmount(e.target.value)}
+                        type="number"
+                        step="0.01"
+                        placeholder="Amount"
+                        className="w-24"
+                      />
+                      <Button size="xs" onClick={() => saveEditMonthly(expense.id)}>
+                        Save
                       </Button>
-                    </form>
-                  </div>
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        onClick={() => setEditingMonthly(null)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <span className="text-sm">{expense.name}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">
+                          €{expense.amount.toFixed(2)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => startEditMonthly(expense)}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          <Edit className="size-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (window.confirm("Delete this expense?")) {
+                              const fd = new FormData();
+                              fd.set("id", String(expense.id));
+                              await deleteExpense(fd);
+                              refreshMonthly();
+                              toast.success("Expense deleted");
+                            }
+                          }}
+                          className="text-muted-foreground hover:text-destructive"
+                        >
+                          <X className="size-3.5" />
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               ))}
             </div>
@@ -281,6 +347,78 @@ export default function SettingsPage() {
 
       <Card>
         <CardHeader>
+          <CardTitle>Quick Amounts</CardTitle>
+          <CardDescription>
+            Preset amounts shown on the home page for quick logging
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex gap-2">
+            <Input
+              value={newAmount}
+              onChange={(e) => setNewAmount(e.target.value)}
+              placeholder="Add amount..."
+              type="number"
+              step="0.01"
+              className="flex-1"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  const val = parseFloat(newAmount);
+                  if (!isNaN(val) && val > 0 && !quickAmounts.includes(val)) {
+                    const next = [...quickAmounts, val];
+                    setQuickAmounts(next);
+                    saveQuickAmounts(next);
+                    setNewAmount("");
+                  }
+                }
+              }}
+            />
+            <Button
+              type="button"
+              disabled={!newAmount.trim()}
+              onClick={() => {
+                const val = parseFloat(newAmount);
+                if (!isNaN(val) && val > 0 && !quickAmounts.includes(val)) {
+                  const next = [...quickAmounts, val];
+                  setQuickAmounts(next);
+                  saveQuickAmounts(next);
+                  setNewAmount("");
+                }
+              }}
+            >
+              <Plus className="size-4" />
+            </Button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {quickAmounts.map((amount, i) => (
+              <div
+                key={amount}
+                className="group flex items-center gap-1.5 rounded-full border bg-background px-3 py-1.5 text-sm"
+              >
+                <span>+€{amount}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = quickAmounts.filter((_, j) => j !== i);
+                    setQuickAmounts(next);
+                    saveQuickAmounts(next);
+                  }}
+                  className="text-muted-foreground hover:text-destructive"
+                >
+                  <X className="size-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+          {quickAmounts.length === 0 && (
+            <p className="text-sm text-muted-foreground">No amounts added</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Quick Categories</CardTitle>
           <CardDescription>
             Preset labels shown on the home page for quick logging
@@ -350,9 +488,25 @@ export default function SettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Account</CardTitle>
-          <CardDescription>Sign out of your account</CardDescription>
+          <CardDescription>Manage your account</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Dark Mode</span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const next = !darkMode;
+                setDarkMode(next);
+                document.documentElement.classList.toggle("dark");
+                localStorage.setItem("theme", next ? "dark" : "light");
+              }}
+            >
+              {darkMode ? <Moon className="size-4" /> : <Sun className="size-4" />}
+            </Button>
+          </div>
           <form action={logout}>
             <Button type="submit" variant="outline" className="w-full">
               <LogOut className="mr-2 size-4" />

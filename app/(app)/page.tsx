@@ -1,24 +1,25 @@
 "use client";
 
 import { useState, useEffect, useRef, useTransition } from "react";
-import { addExpense, getTodaysExpenses, deleteExpense } from "@/app/actions/expenses";
+import { addExpense, getTodaysExpenses, deleteExpense, updateExpense } from "@/app/actions/expenses";
 import { getSettings } from "@/app/actions/settings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Pencil, Check } from "lucide-react";
+import { toast } from "sonner";
 import type { Expense } from "@/app/actions/expenses";
-
-
-
-const QUICK_AMOUNTS = [5, 10, 20, 50];
 
 export default function QuickLog() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [total, setTotal] = useState(0);
   const [dailyGoal, setDailyGoal] = useState(0);
   const [quickItems, setQuickItems] = useState<string[]>([]);
+  const [quickAmounts, setQuickAmounts] = useState([5, 10, 20, 50]);
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editAmount, setEditAmount] = useState("");
   const nameRef = useRef<HTMLInputElement>(null);
   const [pending, startTransition] = useTransition();
 
@@ -34,12 +35,14 @@ export default function QuickLog() {
     getSettings().then((s) => {
       setDailyGoal(s.dailyGoal);
       setQuickItems(s.quickItems);
+      if (s.quickAmounts?.length) setQuickAmounts(s.quickAmounts);
     });
   }, []);
 
   const handleSubmit = async (formData: FormData) => {
     startTransition(async () => {
       await addExpense(formData);
+      toast.success("Expense added");
       setName("");
       setAmount("");
       nameRef.current?.focus();
@@ -48,12 +51,31 @@ export default function QuickLog() {
   };
 
   const handleDelete = async (id: number) => {
+    if (!window.confirm("Delete this expense?")) return;
     const formData = new FormData();
     formData.set("id", String(id));
     await deleteExpense(formData);
+    toast.success("Expense deleted");
     const list = await getTodaysExpenses();
     setExpenses(list);
     setTotal(list.reduce((s, e) => s + e.amount, 0));
+  };
+
+  const startEdit = (expense: Expense) => {
+    setEditingId(expense.id);
+    setEditName(expense.name);
+    setEditAmount(String(expense.amount));
+  };
+
+  const saveEdit = async () => {
+    if (!editingId) return;
+    await updateExpense(editingId, {
+      name: editName,
+      amount: Number(editAmount),
+    });
+    toast.success("Expense updated");
+    setEditingId(null);
+    refreshExpenses();
   };
 
   const handleQuickItem = (item: string) => {
@@ -162,7 +184,7 @@ export default function QuickLog() {
       </form>
 
       <div className="flex flex-wrap gap-1.5">
-        {QUICK_AMOUNTS.map((val) => (
+        {quickAmounts.map((val) => (
           <button
             key={val}
             type="button"
@@ -195,19 +217,59 @@ export default function QuickLog() {
               key={expense.id}
               className="flex items-center justify-between rounded-lg border px-4 py-3"
             >
-              <span className="text-sm font-medium">{expense.name}</span>
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-semibold tabular-nums">
-                  €{expense.amount.toFixed(2)}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => handleDelete(expense.id)}
-                  className="text-muted-foreground hover:text-destructive"
-                >
-                  <X className="size-4" />
-                </button>
-              </div>
+              {editingId === expense.id ? (
+                <div className="flex flex-1 items-center gap-2">
+                  <Input
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="h-8 flex-1"
+                  />
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={editAmount}
+                    onChange={(e) => setEditAmount(e.target.value)}
+                    className="h-8 w-24"
+                  />
+                  <button
+                    type="button"
+                    onClick={saveEdit}
+                    className="text-green-600 hover:text-green-500"
+                  >
+                    <Check className="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditingId(null)}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="size-4" />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <span className="text-sm font-medium">{expense.name}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-semibold tabular-nums">
+                      €{expense.amount.toFixed(2)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => startEdit(expense)}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      <Pencil className="size-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(expense.id)}
+                      className="text-muted-foreground hover:text-destructive"
+                    >
+                      <X className="size-4" />
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           ))}
         </div>

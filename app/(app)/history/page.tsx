@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import {
   searchExpenses,
   deleteExpense,
@@ -27,6 +28,21 @@ export default function HistoryPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
   const [editAmount, setEditAmount] = useState("");
+  const [filterVersion, setFilterVersion] = useState(0);
+  const [displayLimit, setDisplayLimit] = useState(20);
+
+  const total = expenses.reduce((s, e) => s + e.amount, 0);
+  const displayed = expenses.slice(0, displayLimit);
+  const hasMore = displayLimit < expenses.length;
+
+  const setFilter = (updates: Partial<{ search: string; startDate: string; endDate: string; type: "all" | "daily" | "monthly" }>) => {
+    if ("search" in updates) setSearch(updates.search ?? "");
+    if ("startDate" in updates) setStartDate(updates.startDate ?? "");
+    if ("endDate" in updates) setEndDate(updates.endDate ?? "");
+    if ("type" in updates) setType(updates.type ?? "all");
+    setDisplayLimit(20);
+    setFilterVersion((v) => v + 1);
+  };
 
   useEffect(() => {
     (async () => {
@@ -39,7 +55,7 @@ export default function HistoryPage() {
       setExpenses(result);
       setLoaded(true);
     })();
-  }, [search, startDate, endDate, type]);
+  }, [filterVersion]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const refresh = () => {
     searchExpenses({
@@ -63,13 +79,16 @@ export default function HistoryPage() {
       amount: Number(editAmount),
     });
     setEditingId(null);
+    toast.success("Expense updated");
     refresh();
   };
 
   const handleDelete = async (id: number) => {
+    if (!window.confirm("Delete this expense?")) return;
     const fd = new FormData();
     fd.set("id", String(id));
     await deleteExpense(fd);
+    toast.success("Expense deleted");
     refresh();
   };
 
@@ -111,7 +130,7 @@ export default function HistoryPage() {
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => setFilter({ search: e.target.value })}
               placeholder="Search expenses..."
               className="pl-9"
             />
@@ -122,7 +141,7 @@ export default function HistoryPage() {
               <Input
                 type="date"
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={(e) => setFilter({ startDate: e.target.value })}
               />
             </div>
             <div className="flex-1">
@@ -130,7 +149,7 @@ export default function HistoryPage() {
               <Input
                 type="date"
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+                onChange={(e) => setFilter({ endDate: e.target.value })}
               />
             </div>
           </div>
@@ -139,7 +158,7 @@ export default function HistoryPage() {
               <button
                 key={t}
                 type="button"
-                onClick={() => setType(t)}
+                onClick={() => setFilter({ type: t })}
                 className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
                   type === t
                     ? "bg-primary text-primary-foreground"
@@ -156,6 +175,7 @@ export default function HistoryPage() {
       <Card>
         <CardHeader>
           <CardTitle>Expenses ({expenses.length})</CardTitle>
+          <p className="text-xs text-muted-foreground">€{total.toFixed(2)} total</p>
         </CardHeader>
         {expenses.length === 0 ? (
           <CardContent>
@@ -163,7 +183,7 @@ export default function HistoryPage() {
           </CardContent>
         ) : (
           <CardContent className="space-y-1">
-            {expenses.map((expense) => (
+            {displayed.map((expense) => (
               <div
                 key={expense.id}
                 className="flex items-center justify-between rounded-lg border px-3 py-2.5"
@@ -234,6 +254,17 @@ export default function HistoryPage() {
                 )}
               </div>
             ))}
+            {hasMore && (
+              <div className="pt-2 text-center">
+                <button
+                  type="button"
+                  onClick={() => setDisplayLimit((p) => p + 20)}
+                  className="text-xs text-muted-foreground underline hover:text-foreground"
+                >
+                  Show more
+                </button>
+              </div>
+            )}
           </CardContent>
         )}
       </Card>

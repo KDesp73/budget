@@ -9,8 +9,9 @@ import {
   CardDescription,
   CardContent,
 } from "@/components/ui/card";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, Settings as SettingsIcon } from "lucide-react";
 import SpendingChart from "./spending-chart";
 import CategoryPie from "./category-pie";
 import CalendarGrid from "./calendar-grid";
@@ -95,6 +96,26 @@ export default function DashboardClient({
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  if (settings.monthlySalary === 0 && totalMonthly === 0) {
+    return (
+      <div className="mx-auto flex w-full max-w-lg flex-col items-center gap-4 p-4 pt-16 text-center">
+        <div className="rounded-full bg-muted p-4">
+          <SettingsIcon className="size-8 text-muted-foreground" />
+        </div>
+        <h2 className="text-lg font-semibold">Welcome to Budget</h2>
+        <p className="text-sm text-muted-foreground">
+          Start by configuring your monthly salary and adding your fixed expenses in Settings.
+        </p>
+        <Link
+          href="/settings"
+          className="inline-flex h-8 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/80"
+        >
+          Go to Settings
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-4">
