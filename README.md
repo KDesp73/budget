@@ -17,6 +17,18 @@ npx tsx db/run.ts          # create tables
 npm run dev
 ```
 
+### Docker
+
+```bash
+# Build the image
+docker build -t budget .
+
+# Run with env vars from .env.local
+docker run -p 3000:3000 --env-file .env.local budget
+```
+
+The app listens on port 3000. Pass any environment variables with `--env-file` or `-e`.
+
 ### Environment Variables
 
 | Variable | Description |
