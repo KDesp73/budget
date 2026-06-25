@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef, useTransition } from "react";
-import { addExpense, getTodaysExpenses, deleteExpense, updateExpense } from "@/app/actions/expenses";
+import { useState, useEffect, useRef, useTransition, useMemo } from "react";
+import { addExpense, getTodaysExpenses, getExpenses, deleteExpense, updateExpense } from "@/app/actions/expenses";
 import { getSettings } from "@/app/actions/settings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,14 +20,17 @@ export default function QuickLog({
   initialExpenses,
   initialTotal,
   initialSettings,
+  initialVariableNames = [],
 }: {
   initialExpenses: Expense[];
   initialTotal: number;
   initialSettings: Settings;
+  initialVariableNames?: string[];
 }) {
   const { confirm } = useConfirm();
   const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
   const [total, setTotal] = useState(initialTotal);
+  const [variableNames, setVariableNames] = useState<string[]>(initialVariableNames);
   const [dailyGoal, setDailyGoal] = useState(initialSettings.dailyGoal);
   const [quickItems, setQuickItems] = useState<string[]>(initialSettings.quickItems);
   const [quickAmounts, setQuickAmounts] = useState(initialSettings.quickAmounts.length > 0 ? initialSettings.quickAmounts : [5, 10, 20, 50]);
@@ -39,6 +42,15 @@ export default function QuickLog({
   const nameRef = useRef<HTMLInputElement>(null);
   const [pending, startTransition] = useTransition();
 
+  const filteredExpenses = useMemo(
+    () => expenses.filter((e) => !variableNames.includes(e.name)),
+    [expenses, variableNames]
+  );
+  const filteredTotal = useMemo(
+    () => filteredExpenses.reduce((s, e) => s + e.amount, 0),
+    [filteredExpenses]
+  );
+
   const refreshExpenses = () => {
     getTodaysExpenses().then((list) => {
       setExpenses(list);
@@ -47,10 +59,14 @@ export default function QuickLog({
   };
 
   useEffect(() => {
-    getSettings().then((s) => {
+    Promise.all([
+      getSettings(),
+      getExpenses("variable_monthly"),
+    ]).then(([s, v]) => {
       setDailyGoal(s.dailyGoal);
       setQuickItems(s.quickItems);
       if (s.quickAmounts?.length) setQuickAmounts(s.quickAmounts);
+      setVariableNames(v.map((e) => e.name));
     });
   }, []);
 
@@ -110,37 +126,37 @@ export default function QuickLog({
       <div className="rounded-xl bg-primary px-6 py-8 text-center text-primary-foreground">
         <p className="text-sm font-medium opacity-80">Today&apos;s Spending</p>
         <p className="mt-1 text-5xl font-bold tracking-tight">
-          €{total.toFixed(2)}
+          €{filteredTotal.toFixed(2)}
         </p>
         {dailyGoal > 0 && (
           <div className="mx-auto mt-4 w-full max-w-xs">
             <div className="flex items-center justify-between text-xs opacity-80">
               <span>Goal: €{dailyGoal.toFixed(2)}</span>
-              <span>{Math.min(Math.round((total / dailyGoal) * 100), 100)}%</span>
+              <span>{Math.min(Math.round((filteredTotal / dailyGoal) * 100), 100)}%</span>
             </div>
             <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-primary-foreground/20">
               <div
                 className={`h-full rounded-full transition-all duration-300 ${
-                  total > dailyGoal ? "bg-destructive" : "bg-primary-foreground"
+                  filteredTotal > dailyGoal ? "bg-destructive" : "bg-primary-foreground"
                 }`}
-                style={{ width: `${Math.min((total / dailyGoal) * 100, 100)}%` }}
+                style={{ width: `${Math.min((filteredTotal / dailyGoal) * 100, 100)}%` }}
               />
             </div>
-            {total > dailyGoal && (
+            {filteredTotal > dailyGoal && (
               <p className="mt-1 text-xs font-medium opacity-80">
-                €{(total - dailyGoal).toFixed(2)} over goal
+                €{(filteredTotal - dailyGoal).toFixed(2)} over goal
               </p>
             )}
-            {total <= dailyGoal && dailyGoal - total > 0 && (
+            {filteredTotal <= dailyGoal && dailyGoal - filteredTotal > 0 && (
               <p className="mt-1 text-xs opacity-60">
-                €{(dailyGoal - total).toFixed(2)} remaining
+                €{(dailyGoal - filteredTotal).toFixed(2)} remaining
               </p>
             )}
           </div>
         )}
-        {expenses.length > 0 && (
+        {filteredExpenses.length > 0 && (
           <p className="mt-1 text-sm opacity-60">
-            {expenses.length} {expenses.length === 1 ? "entry" : "entries"}
+            {filteredExpenses.length} {filteredExpenses.length === 1 ? "entry" : "entries"}
           </p>
         )}
       </div>
@@ -223,10 +239,10 @@ export default function QuickLog({
         ))}
       </div>
 
-      {expenses.length > 0 && (
+      {filteredExpenses.length > 0 && (
         <div className="space-y-1">
           <p className="text-sm font-medium text-muted-foreground">Today</p>
-          {expenses.map((expense) => (
+          {filteredExpenses.map((expense) => (
             <div
               key={expense.id}
               className="flex items-center justify-between rounded-lg border px-4 py-3"

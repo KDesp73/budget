@@ -25,18 +25,21 @@ export default function DashboardClient({
   initialData,
   initialSettings,
   initialMonthly,
+  initialVariable,
 }: {
   initialYear: number;
   initialMonth: number;
   initialData: DailyTotal[];
   initialSettings: Settings;
   initialMonthly: Expense[];
+  initialVariable: Expense[];
 }) {
   const [year, setYear] = useState(initialYear);
   const [month, setMonth] = useState(initialMonth);
   const [data, setData] = useState(initialData);
   const [settings] = useState(initialSettings);
   const [monthlyExpenses] = useState(initialMonthly);
+  const [variableExpenses] = useState(initialVariable);
   const paydayDay = settings.paydayDay || 1;
 
   const fetchPeriod = useCallback(async (y: number, m: number) => {
@@ -66,6 +69,7 @@ export default function DashboardClient({
   const daysInPeriod = useMemo(() => getDaysInBudgetPeriod(paydayDay, year, month), [paydayDay, year, month]);
 
   const totalMonthly = monthlyExpenses.reduce((sum, e) => sum + e.amount, 0);
+  const totalVariable = variableExpenses.reduce((sum, e) => sum + e.amount, 0);
   const totalThisPeriod = data.reduce((sum, d) => sum + d.total, 0);
   const savingsTarget =
     (settings.monthlySalary * settings.savingsPercentage) / 100;
@@ -240,6 +244,12 @@ export default function DashboardClient({
                 <span className="text-muted-foreground">Spent so far</span>
                 <span className="font-semibold">€{spentSoFar.toFixed(2)}</span>
               </div>
+              {totalVariable > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Variable expenses (est.)</span>
+                  <span className="font-semibold">€{totalVariable.toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">
                   {daysLeft > 0 ? `Per day (${daysLeft}d left)` : "Per day"}

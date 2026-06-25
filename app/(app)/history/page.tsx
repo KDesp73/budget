@@ -26,7 +26,7 @@ export default function HistoryPage() {
   const [search, setSearch] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [type, setType] = useState<"all" | "daily" | "monthly">("all");
+  const [type, setType] = useState<"all" | "daily" | "monthly" | "variable_monthly">("all");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
   const [editAmount, setEditAmount] = useState("");
@@ -37,7 +37,7 @@ export default function HistoryPage() {
   const displayed = expenses.slice(0, displayLimit);
   const hasMore = displayLimit < expenses.length;
 
-  const setFilter = (updates: Partial<{ search: string; startDate: string; endDate: string; type: "all" | "daily" | "monthly" }>) => {
+  const setFilter = (updates: Partial<{ search: string; startDate: string; endDate: string; type: "all" | "daily" | "monthly" | "variable_monthly" }>) => {
     if ("search" in updates) setSearch(updates.search ?? "");
     if ("startDate" in updates) setStartDate(updates.startDate ?? "");
     if ("endDate" in updates) setEndDate(updates.endDate ?? "");
@@ -156,7 +156,7 @@ export default function HistoryPage() {
             </div>
           </div>
           <div className="flex gap-1">
-            {(["all", "daily", "monthly"] as const).map((t) => (
+            {(["all", "daily", "monthly", "variable_monthly"] as const).map((t) => (
               <button
                 key={t}
                 type="button"
@@ -167,7 +167,7 @@ export default function HistoryPage() {
                     : "bg-muted text-muted-foreground hover:text-foreground"
                 }`}
               >
-                {t === "all" ? "All" : t === "daily" ? "Daily" : "Monthly"}
+                {t === "all" ? "All" : t === "daily" ? "Daily" : t === "monthly" ? "Monthly" : "Variable"}
               </button>
             ))}
           </div>
@@ -228,6 +228,11 @@ export default function HistoryPage() {
                         {expense.type === "monthly" && (
                           <span className="ml-1.5 rounded bg-muted px-1 py-0.5 text-[10px]">
                             monthly
+                          </span>
+                        )}
+                        {expense.type === "variable_monthly" && (
+                          <span className="ml-1.5 rounded bg-muted px-1 py-0.5 text-[10px]">
+                            variable
                           </span>
                         )}
                       </span>
