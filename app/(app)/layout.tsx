@@ -14,7 +14,7 @@ export default async function AppLayout({
     <>
       <header className="sticky top-0 z-50 hidden items-center justify-between border-b bg-background px-4 py-3 md:flex">
         <Link href="/" className="text-lg font-semibold">
-          Budget
+          budget
         </Link>
         <nav className="flex items-center gap-1">
           <Link
