@@ -11,7 +11,7 @@ function toPlain(row: Record<string, unknown>): Expense {
     id: Number(row.id),
     name: String(row.name),
     amount: Number(row.amount),
-    type: row.type as "monthly" | "daily",
+    type: row.type as "monthly" | "daily" | "variable_monthly",
     date: row.date ? String(row.date) : null,
     created_at: String(row.created_at),
   };
@@ -21,12 +21,12 @@ export type Expense = {
   id: number;
   name: string;
   amount: number;
-  type: "monthly" | "daily";
+  type: "monthly" | "daily" | "variable_monthly";
   date: string | null;
   created_at: string;
 };
 
-export async function getExpenses(type?: "monthly" | "daily"): Promise<Expense[]> {
+export async function getExpenses(type?: "monthly" | "daily" | "variable_monthly"): Promise<Expense[]> {
   await verifySession();
 
   let sql = "SELECT id, name, amount, type, date, created_at FROM expenses";
@@ -161,7 +161,7 @@ export async function addExpense(formData: FormData) {
 
   const name = formData.get("name") as string;
   const amount = Number(formData.get("amount"));
-  const type = (formData.get("type") as "monthly" | "daily") || "daily";
+  const type = (formData.get("type") as "monthly" | "daily" | "variable_monthly") || "daily";
   const date = (formData.get("date") as string) || null;
 
   if (!name || !amount) return;
@@ -188,7 +188,7 @@ export async function searchExpenses(query: {
   search?: string;
   startDate?: string;
   endDate?: string;
-  type?: "daily" | "monthly" | "all";
+  type?: "daily" | "monthly" | "variable_monthly" | "all";
 }): Promise<Expense[]> {
   await verifySession();
 
@@ -228,7 +228,7 @@ export async function exportDateRangeCSV(startDate: string, endDate: string): Pr
   const result = await db.execute(
     `SELECT name, amount, type, date, created_at
      FROM expenses
-     WHERE (type = 'daily' AND date >= ? AND date <= ?) OR (type = 'monthly')
+      WHERE (type = 'daily' AND date >= ? AND date <= ?) OR type = 'monthly' OR type = 'variable_monthly'
      ORDER BY date ASC, created_at ASC`,
     [startDate, endDate]
   );
@@ -248,7 +248,7 @@ export async function exportMonthCSV(year: number, month: number): Promise<strin
   const result = await db.execute(
     `SELECT name, amount, type, date, created_at
      FROM expenses
-     WHERE (type = 'daily' AND date LIKE ?) OR (type = 'monthly')
+      WHERE (type = 'daily' AND date LIKE ?) OR type = 'monthly' OR type = 'variable_monthly'
      ORDER BY date ASC, created_at ASC`,
     [`${monthStr}%`]
   );

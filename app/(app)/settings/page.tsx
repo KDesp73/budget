@@ -31,6 +31,7 @@ export default function SettingsPage() {
   const [dailyGoal, setDailyGoal] = useState("");
   const [paydayDay, setPaydayDay] = useState("1");
   const [monthlyExpenses, setMonthlyExpenses] = useState<Expense[]>([]);
+  const [variableExpenses, setVariableExpenses] = useState<Expense[]>([]);
   const [quickItems, setQuickItems] = useState<string[]>([]);
   const [newItem, setNewItem] = useState("");
   const [quickAmounts, setQuickAmounts] = useState<number[]>([]);
@@ -44,10 +45,15 @@ export default function SettingsPage() {
   const [editingMonthly, setEditingMonthly] = useState<number | null>(null);
   const [editMonthlyName, setEditMonthlyName] = useState("");
   const [editMonthlyAmount, setEditMonthlyAmount] = useState("");
+  const [editingVariable, setEditingVariable] = useState<number | null>(null);
+  const [editVariableName, setEditVariableName] = useState("");
+  const [editVariableAmount, setEditVariableAmount] = useState("");
   const [state, action, pending] = useActionState(saveSettings, undefined);
 
   const refreshMonthly = () =>
     getExpenses("monthly").then(setMonthlyExpenses);
+  const refreshVariable = () =>
+    getExpenses("variable_monthly").then(setVariableExpenses);
 
   const startEditMonthly = (expense: Expense) => {
     setEditingMonthly(expense.id);
@@ -62,6 +68,19 @@ export default function SettingsPage() {
     toast.success("Expense updated");
   };
 
+  const startEditVariable = (expense: Expense) => {
+    setEditingVariable(expense.id);
+    setEditVariableName(expense.name);
+    setEditVariableAmount(String(expense.amount));
+  };
+
+  const saveEditVariable = async (id: number) => {
+    await updateExpense(id, { name: editVariableName, amount: Number(editVariableAmount) });
+    setEditingVariable(null);
+    refreshVariable();
+    toast.success("Expense updated");
+  };
+
   useEffect(() => {
     getSettings().then((s) => {
       setSalary(String(s.monthlySalary));
@@ -72,7 +91,7 @@ export default function SettingsPage() {
       setQuickAmounts(s.quickAmounts);
       setCategoryBudgets(s.categoryBudgets);
     });
-    refreshMonthly().then(() => setLoaded(true));
+    Promise.all([refreshMonthly(), refreshVariable()]).then(() => setLoaded(true));
   }, []);
 
   if (!loaded) {
@@ -276,6 +295,111 @@ export default function SettingsPage() {
                               fd.set("id", String(expense.id));
                               await deleteExpense(fd);
                               refreshMonthly();
+                              toast.success("Expense deleted");
+                            }
+                          }}
+                          className="text-muted-foreground hover:text-destructive"
+                        >
+                          <X className="size-3.5" />
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Variable Monthly Expenses</CardTitle>
+          <CardDescription>Necessary expenses each month with varying amounts (not included in daily goal)</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <form
+            action={addExpense}
+            onSubmit={() => setTimeout(refreshVariable, 100)}
+            className="flex gap-2"
+          >
+            <input type="hidden" name="type" value="variable_monthly" />
+            <Input
+              name="name"
+              placeholder="Name (e.g. Gas)"
+              required
+              className="flex-1"
+            />
+            <Input
+              name="amount"
+              type="number"
+              step="0.01"
+              placeholder="Estimated"
+              required
+              className="w-28"
+            />
+            <Button type="submit">Add</Button>
+          </form>
+          {variableExpenses.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No variable expenses added yet
+            </p>
+          ) : (
+            <div className="space-y-1">
+              {variableExpenses.map((expense) => (
+                <div
+                  key={expense.id}
+                  className="flex items-center justify-between rounded-lg border px-3 py-2"
+                >
+                  {editingVariable === expense.id ? (
+                    <div className="flex w-full items-center gap-2">
+                      <Input
+                        value={editVariableName}
+                        onChange={(e) => setEditVariableName(e.target.value)}
+                        placeholder="Name"
+                        className="flex-1"
+                      />
+                      <Input
+                        value={editVariableAmount}
+                        onChange={(e) => setEditVariableAmount(e.target.value)}
+                        type="number"
+                        step="0.01"
+                        placeholder="Amount"
+                        className="w-24"
+                      />
+                      <Button size="xs" onClick={() => saveEditVariable(expense.id)}>
+                        Save
+                      </Button>
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        onClick={() => setEditingVariable(null)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <span className="text-sm">{expense.name}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">
+                          €{expense.amount.toFixed(2)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => startEditVariable(expense)}
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          <Edit className="size-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (await confirm({ title: "Delete expense", message: "Delete this expense?", destructive: true, confirmLabel: "Delete" })) {
+                              const fd = new FormData();
+                              fd.set("id", String(expense.id));
+                              await deleteExpense(fd);
+                              refreshVariable();
                               toast.success("Expense deleted");
                             }
                           }}
