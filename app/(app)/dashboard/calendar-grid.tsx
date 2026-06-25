@@ -34,7 +34,6 @@ export default function CalendarGrid({
   onPrev: () => void;
   onNext: () => void;
 }) {
-  const [mode, setMode] = useState<"separate" | "heatmap">("separate");
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const { confirm } = useConfirm();
 
@@ -82,33 +81,7 @@ export default function CalendarGrid({
   return (
     <Card>
       <CardHeader className="flex-row items-center justify-between space-y-0 pb-3">
-        <div className="flex items-center gap-2">
-          <CardTitle className="text-base">Calendar</CardTitle>
-          <div className="flex rounded-lg border text-xs">
-            <button
-              type="button"
-              onClick={() => setMode("separate")}
-              className={`rounded-l-lg px-2.5 py-1 transition-colors ${
-                mode === "separate"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Separate
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode("heatmap")}
-              className={`rounded-r-lg px-2.5 py-1 transition-colors ${
-                mode === "heatmap"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Heatmap
-            </button>
-          </div>
-        </div>
+        <CardTitle className="text-base">Calendar</CardTitle>
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="xs" onClick={onPrev}>
             <ChevronLeft className="size-4" />
@@ -138,39 +111,17 @@ export default function CalendarGrid({
             const info = dayMap.get(dateStr);
             const amount = info?.total ?? 0;
 
-            if (mode === "heatmap") {
-              return (
-                <button
-                  type="button"
-                  key={dateStr}
-                  onClick={() => setSelectedDay(dateStr === selectedDay ? null : dateStr)}
-                  className={`flex aspect-square flex-col items-center justify-center rounded-lg text-xs transition-colors ${heatColor(amount / maxTotal)}`}
-                >
-                  <span className="font-medium">{dayNum}</span>
-                  {amount > 0 && (
-                    <span className="mt-0.5 text-[10px] leading-none">
-                      €{amount.toFixed(0)}
-                    </span>
-                  )}
-                </button>
-              );
-            }
-
             return (
               <button
                 type="button"
                 key={dateStr}
                 onClick={() => setSelectedDay(dateStr === selectedDay ? null : dateStr)}
-                className="flex aspect-square flex-col items-center justify-center rounded-lg border bg-background"
+                className={`flex aspect-square flex-col items-center justify-center rounded-lg text-xs transition-colors ${heatColor(amount / maxTotal)}`}
               >
-                <span className="text-sm font-medium">{dayNum}</span>
-                {amount > 0 ? (
-                  <span className="mt-0.5 text-[10px] font-semibold tabular-nums text-muted-foreground">
+                <span className="font-medium">{dayNum}</span>
+                {amount > 0 && (
+                  <span className="mt-0.5 text-[10px] leading-none">
                     €{amount.toFixed(0)}
-                  </span>
-                ) : (
-                  <span className="mt-0.5 text-[10px] text-muted-foreground/40">
-                    -
                   </span>
                 )}
               </button>
