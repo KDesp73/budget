@@ -213,6 +213,9 @@ export async function searchExpenses(query: {
   if (query.type && query.type !== "all") {
     conditions.push("type = ?");
     params.push(query.type);
+  } else if (!query.type || query.type === "all") {
+    conditions.push("type != ?");
+    params.push("variable_monthly");
   }
 
   const where = conditions.length > 0 ? ` WHERE ${conditions.join(" AND ")}` : "";
