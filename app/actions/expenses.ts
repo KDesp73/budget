@@ -3,6 +3,7 @@
 import { db } from "@/db/index";
 import { verifySession } from "@/lib/dal";
 import { revalidatePath } from "next/cache";
+import { getBudgetDateRange, getPeriodLabel } from "@/lib/budget";
 
 const REVALIDATE_PATHS = ["/", "/dashboard", "/settings", "/history"];
 
@@ -262,6 +263,88 @@ export async function exportMonthCSV(year: number, month: number): Promise<strin
     .map((r) => `${r.name},${r.amount.toFixed(2)},${r.type},${r.date ?? ""}`)
     .join("\n");
   return header + body;
+}
+
+export type PeriodSummary = {
+  year: number;
+  month: number;
+  label: string;
+  total: number;
+};
+
+export async function getPreviousPeriodData(paydayDay: number, year: number, month: number): Promise<DailyTotal[]> {
+  await verifySession();
+
+  let prevYear: number, prevMonth: number;
+  if (month === 1) {
+    prevYear = year - 1;
+    prevMonth = 12;
+  } else {
+    prevYear = year;
+    prevMonth = month - 1;
+  }
+
+  const { startDate, endDate } = getBudgetDateRange(paydayDay, prevYear, prevMonth);
+  return getExpensesByDateRange(startDate, endDate);
+}
+
+export async function getMultiPeriodTotals(paydayDay: number, year: number, month: number, count: number = 6): Promise<PeriodSummary[]> {
+  await verifySession();
+
+  const periods: { year: number; month: number }[] = [];
+  let curYear = year;
+  let curMonth = month;
+
+  for (let i = 0; i < count; i++) {
+    periods.push({ year: curYear, month: curMonth });
+    if (curMonth === 1) { curYear--; curMonth = 12; } else { curMonth--; }
+  }
+
+  const ranges = periods.map(p => getBudgetDateRange(paydayDay, p.year, p.month));
+  const overallStart = ranges[ranges.length - 1].startDate;
+  const overallEnd = ranges[0].endDate;
+
+  const result = await db.execute(
+    `SELECT id, name, amount, type, date, created_at
+     FROM expenses
+     WHERE type = 'daily'
+       AND date >= ?
+       AND date <= ?
+     ORDER BY date ASC`,
+    [overallStart, overallEnd]
+  );
+
+  const expenses = result.rows.map(r => toPlain(r as Record<string, unknown>));
+
+  const trendData = periods.map(p => {
+    const range = getBudgetDateRange(paydayDay, p.year, p.month);
+    const total = expenses
+      .filter(e => e.date && e.date >= range.startDate && e.date <= range.endDate)
+      .reduce((s, e) => s + e.amount, 0);
+    return {
+      year: p.year,
+      month: p.month,
+      label: getPeriodLabel(paydayDay, p.year, p.month),
+      total,
+    };
+  });
+
+  return trendData.reverse();
+}
+
+export async function getRecentExpenses(limit: number = 10): Promise<Expense[]> {
+  await verifySession();
+
+  const result = await db.execute(
+    `SELECT id, name, amount, type, date, created_at
+     FROM expenses
+     WHERE type = 'daily'
+     ORDER BY date DESC, created_at DESC
+     LIMIT ?`,
+    [limit]
+  );
+
+  return result.rows.map(r => toPlain(r as Record<string, unknown>));
 }
 
 export async function updateExpense(id: number, data: { name?: string; amount?: number }) {
