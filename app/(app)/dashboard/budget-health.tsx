@@ -15,11 +15,13 @@ export default function BudgetHealth({
   const ratio = remaining > 0 ? projectedTotal / remaining : Infinity;
 
   let status: { label: string; icon: typeof CircleCheck; color: string; bg: string };
-  if (remaining < 0 || projectedTotal > remaining * 1.5) {
-    status = { label: "Overspent", icon: TrendingDown, color: "text-red-600 dark:text-red-400", bg: "bg-red-50 dark:bg-red-950/30" };
-  } else if (ratio > 1 || isOverCategoryBudget) {
+  if (remaining < 0) {
+    status = { label: "Budget Issue", icon: TrendingDown, color: "text-red-600 dark:text-red-400", bg: "bg-red-50 dark:bg-red-950/30" };
+  } else if (ratio > 1) {
     status = { label: "At Risk", icon: AlertTriangle, color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-50 dark:bg-orange-950/30" };
   } else if (ratio > 0.7) {
+    status = { label: "Caution", icon: TriangleAlert, color: "text-yellow-600 dark:text-yellow-400", bg: "bg-yellow-50 dark:bg-yellow-950/30" };
+  } else if (isOverCategoryBudget) {
     status = { label: "Caution", icon: TriangleAlert, color: "text-yellow-600 dark:text-yellow-400", bg: "bg-yellow-50 dark:bg-yellow-950/30" };
   } else {
     status = { label: "On Track", icon: CircleCheck, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-950/30" };
@@ -39,11 +41,13 @@ export default function BudgetHealth({
           <div>
             <p className={`text-lg font-bold ${status.color}`}>{status.label}</p>
             <p className="text-xs text-muted-foreground">
-              {ratio === Infinity
-                ? "No remaining budget"
-                : ratio > 1
-                  ? `Projected ${((ratio - 1) * 100).toFixed(0)}% over budget`
-                  : `${((1 - ratio) * 100).toFixed(0)}% of budget remaining`}
+              {remaining < 0
+                ? "Fixed costs exceed income"
+                : ratio === Infinity
+                  ? "No remaining budget"
+                  : ratio > 1
+                    ? `Projected ${((ratio - 1) * 100).toFixed(0)}% over budget`
+                    : `${((1 - ratio) * 100).toFixed(0)}% of budget remaining`}
             </p>
           </div>
         </div>
