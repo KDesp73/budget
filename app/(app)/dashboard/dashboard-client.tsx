@@ -224,7 +224,7 @@ export default function DashboardClient({
           daysInPeriod={daysInPeriod}
           remaining={remaining}
         />
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 grid grid-rows-1">
           <PreviousComparison
             currentData={data}
             previousData={previousData}
@@ -233,7 +233,7 @@ export default function DashboardClient({
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 grid grid-rows-1">
           <SpendingChart data={data} />
         </div>
         <DayOfWeekChart data={data} />
@@ -323,7 +323,7 @@ export default function DashboardClient({
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <RecentTransactions expenses={recentExpenses} />
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 grid grid-rows-1">
           {Object.keys(settings.categoryBudgets).length > 0 && (
             <Card>
               <CardHeader>
