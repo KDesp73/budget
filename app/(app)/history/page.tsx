@@ -248,14 +248,13 @@ export default function HistoryPage() {
                       >
                         <Pencil className="size-3.5" />
                       </button>
-                      <form action={handleDelete.bind(null, expense.id)}>
-                        <button
-                          type="submit"
-                          className="text-muted-foreground hover:text-destructive"
-                        >
-                          <X className="size-3.5" />
-                        </button>
-                      </form>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(expense.id)}
+                        className="text-muted-foreground hover:text-destructive"
+                      >
+                        <X className="size-3.5" />
+                      </button>
                     </div>
                   </>
                 )}
