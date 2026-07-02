@@ -56,3 +56,4 @@ The app listens on port 3000. Pass any environment variables with `--env-file` o
 - **sonner** (toasts)
 - **JWT** sessions via `jose`
 - **bcryptjs** password auth
+
