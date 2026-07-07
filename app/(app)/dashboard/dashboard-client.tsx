@@ -92,11 +92,10 @@ export default function DashboardClient({
   const daysInPeriod = useMemo(() => getDaysInBudgetPeriod(paydayDay, year, month), [paydayDay, year, month]);
 
   const totalMonthly = monthlyExpenses.reduce((sum, e) => sum + e.amount, 0);
-  const totalVariable = variableExpenses.reduce((sum, e) => sum + e.amount, 0);
   const totalThisPeriod = data.reduce((sum, d) => sum + d.total, 0);
   const savingsTarget =
     (settings.monthlySalary * settings.savingsPercentage) / 100;
-  const remaining = settings.monthlySalary - totalMonthly - totalVariable - savingsTarget;
+  const remaining = settings.monthlySalary - totalMonthly;
 
   const today = new Date();
   const periodStart = new Date(startDate);
@@ -189,7 +188,7 @@ export default function DashboardClient({
           <CardHeader>
             <CardDescription>Fixed Expenses</CardDescription>
             <CardTitle className="text-2xl">
-              €{(totalMonthly + totalVariable).toFixed(2)}
+              €{totalMonthly.toFixed(2)}
             </CardTitle>
           </CardHeader>
         </Card>
