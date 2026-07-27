@@ -190,6 +190,7 @@ export async function searchExpenses(query: {
   startDate?: string;
   endDate?: string;
   type?: "daily" | "monthly" | "variable_monthly" | "all";
+  category?: string;
 }): Promise<Expense[]> {
   await verifySession();
 
@@ -217,6 +218,11 @@ export async function searchExpenses(query: {
   } else if (!query.type || query.type === "all") {
     conditions.push("type != ?");
     params.push("variable_monthly");
+  }
+
+  if (query.category) {
+    conditions.push("name = ?");
+    params.push(query.category);
   }
 
   const where = conditions.length > 0 ? ` WHERE ${conditions.join(" AND ")}` : "";
@@ -330,6 +336,16 @@ export async function getMultiPeriodTotals(paydayDay: number, year: number, mont
   });
 
   return trendData.reverse();
+}
+
+export async function getCategories(): Promise<string[]> {
+  await verifySession();
+
+  const result = await db.execute(
+    `SELECT name FROM expenses WHERE type != 'variable_monthly' GROUP BY name HAVING COUNT(*) > 1 ORDER BY name ASC`
+  );
+
+  return result.rows.map((r) => String(r.name));
 }
 
 export async function getRecentExpenses(limit: number = 10): Promise<Expense[]> {
