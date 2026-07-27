@@ -6,6 +6,7 @@ import {
   searchExpenses,
   deleteExpense,
   updateExpense,
+  getCategories,
 } from "@/app/actions/expenses";
 
 import { Input } from "@/components/ui/input";
@@ -19,6 +20,48 @@ import { X, Check, Pencil, Search } from "lucide-react";
 import { useConfirm } from "@/components/confirm-dialog";
 import type { Expense } from "@/app/actions/expenses";
 
+type DatePreset = "past_week" | "past_month" | "past_3_months" | "past_6_months" | "past_year" | "custom" | "all";
+
+const DATE_PRESETS: { value: DatePreset; label: string }[] = [
+  { value: "past_week", label: "Past week" },
+  { value: "past_month", label: "Past month" },
+  { value: "past_3_months", label: "Past 3 months" },
+  { value: "past_6_months", label: "Past 6 months" },
+  { value: "past_year", label: "Past year" },
+  { value: "custom", label: "Custom" },
+  { value: "all", label: "All time" },
+];
+
+function getDatesForPreset(preset: DatePreset): { start: string; end: string } | null {
+  if (preset === "all" || preset === "custom") return null;
+
+  const end = new Date();
+  const start = new Date();
+
+  switch (preset) {
+    case "past_week":
+      start.setDate(start.getDate() - 7);
+      break;
+    case "past_month":
+      start.setMonth(start.getMonth() - 1);
+      break;
+    case "past_3_months":
+      start.setMonth(start.getMonth() - 3);
+      break;
+    case "past_6_months":
+      start.setMonth(start.getMonth() - 6);
+      break;
+    case "past_year":
+      start.setFullYear(start.getFullYear() - 1);
+      break;
+  }
+
+  return {
+    start: start.toISOString().slice(0, 10),
+    end: end.toISOString().slice(0, 10),
+  };
+}
+
 export default function HistoryPage() {
   const { confirm } = useConfirm();
   const [loaded, setLoaded] = useState(false);
@@ -27,6 +70,9 @@ export default function HistoryPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [type, setType] = useState<"all" | "daily" | "monthly" | "variable_monthly">("all");
+  const [category, setCategory] = useState("");
+  const [categories, setCategories] = useState<string[]>([]);
+  const [datePreset, setDatePreset] = useState<DatePreset>("all");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
   const [editAmount, setEditAmount] = useState("");
@@ -37,22 +83,51 @@ export default function HistoryPage() {
   const displayed = expenses.slice(0, displayLimit);
   const hasMore = displayLimit < expenses.length;
 
-  const setFilter = (updates: Partial<{ search: string; startDate: string; endDate: string; type: "all" | "daily" | "monthly" | "variable_monthly" }>) => {
+  useEffect(() => {
+    getCategories().then(setCategories);
+  }, []);
+
+  const applyFilters = (updates: {
+    search?: string;
+    startDate?: string;
+    endDate?: string;
+    type?: "all" | "daily" | "monthly" | "variable_monthly";
+    category?: string;
+    datePreset?: DatePreset;
+  }) => {
     if ("search" in updates) setSearch(updates.search ?? "");
+    if ("type" in updates) setType(updates.type ?? "all");
+    if ("category" in updates) setCategory(updates.category ?? "");
+    if ("datePreset" in updates) {
+      const preset = updates.datePreset ?? "all";
+      setDatePreset(preset);
+      if (preset !== "custom") {
+        const dates = getDatesForPreset(preset);
+        setStartDate(dates?.start ?? "");
+        setEndDate(dates?.end ?? "");
+      }
+    }
     if ("startDate" in updates) setStartDate(updates.startDate ?? "");
     if ("endDate" in updates) setEndDate(updates.endDate ?? "");
-    if ("type" in updates) setType(updates.type ?? "all");
     setDisplayLimit(20);
     setFilterVersion((v) => v + 1);
   };
 
   useEffect(() => {
     (async () => {
+      const effectiveStart = datePreset !== "custom" && datePreset !== "all"
+        ? getDatesForPreset(datePreset)?.start
+        : startDate || undefined;
+      const effectiveEnd = datePreset !== "custom" && datePreset !== "all"
+        ? getDatesForPreset(datePreset)?.end
+        : endDate || undefined;
+
       const result = await searchExpenses({
         search: search || undefined,
-        startDate: startDate || undefined,
-        endDate: endDate || undefined,
+        startDate: effectiveStart,
+        endDate: effectiveEnd,
         type,
+        category: category || undefined,
       });
       setExpenses(result);
       setLoaded(true);
@@ -60,11 +135,19 @@ export default function HistoryPage() {
   }, [filterVersion]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const refresh = () => {
+    const effectiveStart = datePreset !== "custom" && datePreset !== "all"
+      ? getDatesForPreset(datePreset)?.start
+      : startDate || undefined;
+    const effectiveEnd = datePreset !== "custom" && datePreset !== "all"
+      ? getDatesForPreset(datePreset)?.end
+      : endDate || undefined;
+
     searchExpenses({
       search: search || undefined,
-      startDate: startDate || undefined,
-      endDate: endDate || undefined,
+      startDate: effectiveStart,
+      endDate: effectiveEnd,
       type,
+      category: category || undefined,
     }).then(setExpenses);
   };
 
@@ -132,35 +215,56 @@ export default function HistoryPage() {
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={search}
-              onChange={(e) => setFilter({ search: e.target.value })}
+              onChange={(e) => applyFilters({ search: e.target.value })}
               placeholder="Search expenses..."
               className="pl-9"
             />
           </div>
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <label className="mb-1 block text-xs text-muted-foreground">From</label>
-              <Input
-                type="date"
-                value={startDate}
-                onChange={(e) => setFilter({ startDate: e.target.value })}
-              />
-            </div>
-            <div className="flex-1">
-              <label className="mb-1 block text-xs text-muted-foreground">To</label>
-              <Input
-                type="date"
-                value={endDate}
-                onChange={(e) => setFilter({ endDate: e.target.value })}
-              />
-            </div>
+
+          <div className="flex flex-wrap gap-1">
+            {DATE_PRESETS.map((p) => (
+              <button
+                key={p.value}
+                type="button"
+                onClick={() => applyFilters({ datePreset: p.value })}
+                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                  datePreset === p.value
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
           </div>
+
+          {datePreset === "custom" && (
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <label className="mb-1 block text-xs text-muted-foreground">From</label>
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => applyFilters({ startDate: e.target.value })}
+                />
+              </div>
+              <div className="flex-1">
+                <label className="mb-1 block text-xs text-muted-foreground">To</label>
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => applyFilters({ endDate: e.target.value })}
+                />
+              </div>
+            </div>
+          )}
+
           <div className="flex gap-1">
             {(["all", "daily", "monthly", "variable_monthly"] as const).map((t) => (
               <button
                 key={t}
                 type="button"
-                onClick={() => setFilter({ type: t })}
+                onClick={() => applyFilters({ type: t })}
                 className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
                   type === t
                     ? "bg-primary text-primary-foreground"
@@ -171,6 +275,36 @@ export default function HistoryPage() {
               </button>
             ))}
           </div>
+
+          {categories.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              <button
+                type="button"
+                onClick={() => applyFilters({ category: "" })}
+                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                  category === ""
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                All categories
+              </button>
+              {categories.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => applyFilters({ category: c })}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                    category === c
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
