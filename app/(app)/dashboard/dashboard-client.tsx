@@ -236,7 +236,10 @@ export default function DashboardClient({
         <div className="lg:col-span-2 grid grid-rows-1">
           <SpendingChart data={data} />
         </div>
-        <DayOfWeekChart data={data} />
+        <div className="space-y-6">
+          <CategoryPie data={data} />
+          <DayOfWeekChart data={data} />
+        </div>
       </div>
 
       <TrendChart data={trendData} />

@@ -11,6 +11,8 @@ import {
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import type { DailyTotal } from "@/app/actions/expenses";
 
+const THRESHOLD = 3;
+
 const COLORS = [
   "hsl(239, 84%, 67%)",
   "hsl(271, 76%, 53%)",
@@ -21,6 +23,7 @@ const COLORS = [
   "hsl(142, 71%, 45%)",
   "hsl(187, 85%, 53%)",
 ];
+const OTHER_COLOR = "hsl(0, 0%, 70%)";
 
 export default function CategoryPie({
   data,
@@ -28,15 +31,28 @@ export default function CategoryPie({
   data: DailyTotal[];
 }) {
   const categories = useMemo(() => {
-    const map = new Map<string, number>();
+    const totals = new Map<string, number>();
+    const counts = new Map<string, number>();
     for (const day of data) {
       for (const e of day.expenses) {
-        map.set(e.name, (map.get(e.name) ?? 0) + e.amount);
+        totals.set(e.name, (totals.get(e.name) ?? 0) + e.amount);
+        counts.set(e.name, (counts.get(e.name) ?? 0) + 1);
       }
     }
-    return Array.from(map.entries())
-      .map(([name, amount]) => ({ name, amount }))
+
+    const entries = Array.from(totals.entries())
+      .map(([name, amount]) => ({ name, amount, count: counts.get(name) ?? 0 }))
       .sort((a, b) => b.amount - a.amount);
+
+    const main = entries.filter((e) => e.count > THRESHOLD);
+    const other = entries.filter((e) => e.count <= THRESHOLD);
+    const otherTotal = other.reduce((s, e) => s + e.amount, 0);
+
+    if (otherTotal > 0) {
+      main.push({ name: "Other", amount: otherTotal, count: 0 });
+    }
+
+    return main;
   }, [data]);
 
   if (categories.length === 0) return null;
@@ -62,10 +78,10 @@ export default function CategoryPie({
               paddingAngle={2}
               strokeWidth={0}
             >
-              {categories.map((_, i) => (
+              {categories.map((entry, i) => (
                 <Cell
-                  key={i}
-                  fill={COLORS[i % COLORS.length]}
+                  key={entry.name}
+                  fill={entry.name === "Other" ? OTHER_COLOR : COLORS[i % COLORS.length]}
                 />
               ))}
             </Pie>
@@ -86,7 +102,10 @@ export default function CategoryPie({
               <div className="flex items-center gap-2">
                 <span
                   className="size-2.5 rounded-full"
-                  style={{ backgroundColor: COLORS[i % COLORS.length] }}
+                  style={{
+                    backgroundColor:
+                      cat.name === "Other" ? OTHER_COLOR : COLORS[i % COLORS.length],
+                  }}
                 />
                 <span className="text-muted-foreground">{cat.name}</span>
               </div>
