@@ -237,7 +237,7 @@ export default function DashboardClient({
           <SpendingChart data={data} />
         </div>
         <div className="space-y-6">
-          <CategoryPie data={data} />
+          <CategoryPie data={data} monthlyExpenses={monthlyExpenses} />
           <DayOfWeekChart data={data} />
         </div>
       </div>

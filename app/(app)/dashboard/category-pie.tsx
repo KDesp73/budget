@@ -9,9 +9,9 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import type { DailyTotal } from "@/app/actions/expenses";
+import type { DailyTotal, Expense } from "@/app/actions/expenses";
 
-const THRESHOLD = 3;
+const THRESHOLD = 2;
 
 const COLORS = [
   "hsl(239, 84%, 67%)",
@@ -27,12 +27,21 @@ const OTHER_COLOR = "hsl(0, 0%, 70%)";
 
 export default function CategoryPie({
   data,
+  monthlyExpenses = [],
 }: {
   data: DailyTotal[];
+  monthlyExpenses?: Expense[];
 }) {
   const categories = useMemo(() => {
     const totals = new Map<string, number>();
     const counts = new Map<string, number>();
+
+    const monthlyTotal = monthlyExpenses.reduce((s, e) => s + e.amount, 0);
+    if (monthlyTotal > 0) {
+      totals.set("Fixed", monthlyTotal);
+      counts.set("Fixed", 1);
+    }
+
     for (const day of data) {
       for (const e of day.expenses) {
         totals.set(e.name, (totals.get(e.name) ?? 0) + e.amount);
@@ -44,8 +53,8 @@ export default function CategoryPie({
       .map(([name, amount]) => ({ name, amount, count: counts.get(name) ?? 0 }))
       .sort((a, b) => b.amount - a.amount);
 
-    const main = entries.filter((e) => e.count > THRESHOLD);
-    const other = entries.filter((e) => e.count <= THRESHOLD);
+    const main = entries.filter((e) => e.name === "Fixed" || e.count > THRESHOLD);
+    const other = entries.filter((e) => e.name !== "Fixed" && e.count <= THRESHOLD);
     const otherTotal = other.reduce((s, e) => s + e.amount, 0);
 
     if (otherTotal > 0) {
@@ -53,7 +62,7 @@ export default function CategoryPie({
     }
 
     return main;
-  }, [data]);
+  }, [data, monthlyExpenses]);
 
   if (categories.length === 0) return null;
 
