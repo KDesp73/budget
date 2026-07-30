@@ -20,7 +20,7 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { useConfirm } from "@/components/confirm-dialog";
-import { Edit, LogOut, Plus, X, Sun, Moon } from "lucide-react";
+import { Check, Edit, LogOut, Plus, X, Sun, Moon } from "lucide-react";
 import type { Expense } from "@/app/actions/expenses";
 
 export default function SettingsPage() {
@@ -280,6 +280,21 @@ export default function SettingsPage() {
                         <span className="text-sm font-medium">
                           €{expense.amount.toFixed(2)}
                         </span>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const fd = new FormData();
+                            fd.set("name", expense.name);
+                            fd.set("amount", String(expense.amount));
+                            fd.set("type", "daily");
+                            fd.set("date", new Date().toISOString().slice(0, 10));
+                            await addExpense(fd);
+                            toast.success("Expense paid");
+                          }}
+                          className="text-muted-foreground hover:text-primary"
+                        >
+                          <Check className="size-3.5" />
+                        </button>
                         <button
                           type="button"
                           onClick={() => startEditMonthly(expense)}
