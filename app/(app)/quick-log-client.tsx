@@ -20,17 +20,17 @@ export default function QuickLog({
   initialExpenses,
   initialTotal,
   initialSettings,
-  initialVariableNames = [],
+  initialExcludedNames = [],
 }: {
   initialExpenses: Expense[];
   initialTotal: number;
   initialSettings: Settings;
-  initialVariableNames?: string[];
+  initialExcludedNames?: string[];
 }) {
   const { confirm } = useConfirm();
   const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
   const [total, setTotal] = useState(initialTotal);
-  const [variableNames, setVariableNames] = useState<string[]>(initialVariableNames);
+  const [excludedNames, setExcludedNames] = useState<string[]>(initialExcludedNames);
   const [dailyGoal, setDailyGoal] = useState(initialSettings.dailyGoal);
   const [quickItems, setQuickItems] = useState<string[]>(initialSettings.quickItems);
   const [quickAmounts, setQuickAmounts] = useState(initialSettings.quickAmounts.length > 0 ? initialSettings.quickAmounts : [5, 10, 20, 50]);
@@ -43,8 +43,8 @@ export default function QuickLog({
   const [pending, startTransition] = useTransition();
 
   const filteredExpenses = useMemo(
-    () => expenses.filter((e) => !variableNames.includes(e.name)),
-    [expenses, variableNames]
+    () => expenses.filter((e) => !excludedNames.includes(e.name)),
+    [expenses, excludedNames]
   );
   const filteredTotal = useMemo(
     () => filteredExpenses.reduce((s, e) => s + e.amount, 0),
@@ -62,11 +62,12 @@ export default function QuickLog({
     Promise.all([
       getSettings(),
       getExpenses("variable_monthly"),
-    ]).then(([s, v]) => {
+      getExpenses("monthly"),
+    ]).then(([s, v, m]) => {
       setDailyGoal(s.dailyGoal);
       setQuickItems(s.quickItems);
       if (s.quickAmounts?.length) setQuickAmounts(s.quickAmounts);
-      setVariableNames(v.map((e) => e.name));
+      setExcludedNames([...v.map((e) => e.name), ...m.map((e) => e.name)]);
     });
   }, []);
 
