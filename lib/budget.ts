@@ -1,13 +1,21 @@
+function clampDay(year: number, month: number, day: number): number {
+  return Math.min(day, new Date(year, month, 0).getDate());
+}
+
 export function getCurrentBudgetPeriod(
   paydayDay: number,
   now: Date = new Date()
 ): { year: number; month: number } {
-  const day = now.getDate();
-  if (day >= paydayDay) {
-    return { year: now.getFullYear(), month: now.getMonth() + 1 };
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const effectiveDay = clampDay(year, month, paydayDay);
+
+  if (now.getDate() >= effectiveDay) {
+    return { year, month };
   }
-  const prevMonth = now.getMonth() === 0 ? 12 : now.getMonth();
-  const prevYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+
+  const prevMonth = month === 1 ? 12 : month - 1;
+  const prevYear = month === 1 ? year - 1 : year;
   return { year: prevYear, month: prevMonth };
 }
 
@@ -17,26 +25,14 @@ export function getBudgetDateRange(
   month: number
 ): { startDate: string; endDate: string } {
   const pad = (n: number) => String(n).padStart(2, "0");
-  const startDate = `${year}-${pad(month)}-${pad(paydayDay)}`;
 
-  let endYear: number;
-  let endMonth: number;
-  if (month === 12) {
-    endYear = year + 1;
-    endMonth = 1;
-  } else {
-    endYear = year;
-    endMonth = month + 1;
-  }
+  const startDay = clampDay(year, month, paydayDay);
+  const start = new Date(year, month - 1, startDay);
+  const end = new Date(start.getTime() + 29 * 24 * 60 * 60 * 1000);
 
-  let endDay: number;
-  if (paydayDay === 1) {
-    endDay = new Date(endYear, endMonth, 0).getDate();
-  } else {
-    endDay = paydayDay - 1;
-  }
+  const startDate = `${year}-${pad(month)}-${pad(startDay)}`;
+  const endDate = `${end.getFullYear()}-${pad(end.getMonth() + 1)}-${pad(end.getDate())}`;
 
-  const endDate = `${endYear}-${pad(endMonth)}-${pad(endDay)}`;
   return { startDate, endDate };
 }
 
@@ -45,37 +41,20 @@ export function getPeriodLabel(
   year: number,
   month: number
 ): string {
-  if (paydayDay === 1) {
-    return new Date(year, month - 1).toLocaleString("default", {
-      month: "long",
-      year: "numeric",
-    });
-  }
-  const startLabel = new Date(year, month - 1).toLocaleString("default", {
-    month: "short",
-  });
-  let endYear = year;
-  let endMonth = month + 1;
-  if (endMonth > 12) {
-    endMonth = 1;
-    endYear = year + 1;
-  }
-  const endLabel = new Date(endYear, endMonth - 1).toLocaleString("default", {
-    month: "short",
-  });
-  return `${startLabel} ${paydayDay} – ${endLabel} ${paydayDay - 1}`;
-}
-
-export function getDaysInBudgetPeriod(
-  paydayDay: number,
-  year: number,
-  month: number
-): number {
-  if (paydayDay === 1) {
-    return new Date(year, month, 0).getDate();
-  }
   const { startDate, endDate } = getBudgetDateRange(paydayDay, year, month);
   const start = new Date(startDate);
   const end = new Date(endDate);
-  return Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+  const startLabel = start.toLocaleString("default", { month: "short" });
+  const endLabel = end.toLocaleString("default", { month: "short" });
+
+  return `${startLabel} ${start.getDate()} – ${endLabel} ${end.getDate()}`;
+}
+
+export function getDaysInBudgetPeriod(
+  _paydayDay: number,
+  _year: number,
+  _month: number
+): number {
+  return 30;
 }

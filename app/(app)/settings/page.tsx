@@ -185,14 +185,14 @@ export default function SettingsPage() {
                   name="payday_day"
                   type="number"
                   min="1"
-                  max="28"
+                  max="31"
                   step="1"
                   value={paydayDay}
                   onChange={(e) => setPaydayDay(e.target.value)}
                   placeholder="1"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Your budget resets on this day each month (1–28). Default: 1st
+                  Your budget resets on this day. Each period is 30 days. Default: 1st
                 </p>
               </div>
               {state?.success && (
