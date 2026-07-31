@@ -11,8 +11,6 @@ import {
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import type { DailyTotal, Expense } from "@/app/actions/expenses";
 
-const THRESHOLD = 2;
-
 const COLORS = [
   "hsl(239, 84%, 67%)",
   "hsl(271, 76%, 53%)",
@@ -28,41 +26,34 @@ const OTHER_COLOR = "hsl(0, 0%, 70%)";
 export default function CategoryPie({
   data,
   monthlyExpenses = [],
+  allCategories = [],
 }: {
   data: DailyTotal[];
   monthlyExpenses?: Expense[];
+  allCategories?: string[];
 }) {
   const categories = useMemo(() => {
     const totals = new Map<string, number>();
-    const counts = new Map<string, number>();
 
     const monthlyTotal = monthlyExpenses.reduce((s, e) => s + e.amount, 0);
     if (monthlyTotal > 0) {
       totals.set("Fixed", monthlyTotal);
-      counts.set("Fixed", 1);
     }
 
     for (const day of data) {
       for (const e of day.expenses) {
         totals.set(e.name, (totals.get(e.name) ?? 0) + e.amount);
-        counts.set(e.name, (counts.get(e.name) ?? 0) + 1);
       }
     }
 
-    const entries = Array.from(totals.entries())
-      .map(([name, amount]) => ({ name, amount, count: counts.get(name) ?? 0 }))
-      .sort((a, b) => b.amount - a.amount);
-
-    const main = entries.filter((e) => e.name === "Fixed" || e.count > THRESHOLD);
-    const other = entries.filter((e) => e.name !== "Fixed" && e.count <= THRESHOLD);
-    const otherTotal = other.reduce((s, e) => s + e.amount, 0);
-
-    if (otherTotal > 0) {
-      main.push({ name: "Other", amount: otherTotal, count: 0 });
+    for (const name of allCategories) {
+      if (!totals.has(name)) totals.set(name, 0);
     }
 
-    return main;
-  }, [data, monthlyExpenses]);
+    return Array.from(totals.entries())
+      .map(([name, amount]) => ({ name, amount }))
+      .sort((a, b) => b.amount - a.amount);
+  }, [data, monthlyExpenses, allCategories]);
 
   if (categories.length === 0) return null;
 
@@ -119,7 +110,7 @@ export default function CategoryPie({
                 <span className="text-muted-foreground">{cat.name}</span>
               </div>
               <span className="font-medium tabular-nums">
-                {((cat.amount / total) * 100).toFixed(0)}%
+                {total > 0 ? ((cat.amount / total) * 100).toFixed(0) : "0"}%
               </span>
             </div>
           ))}

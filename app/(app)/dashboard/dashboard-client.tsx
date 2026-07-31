@@ -35,6 +35,7 @@ export default function DashboardClient({
   initialPreviousData,
   initialTrendData,
   initialRecentExpenses,
+  initialAllCategories,
 }: {
   initialYear: number;
   initialMonth: number;
@@ -45,6 +46,7 @@ export default function DashboardClient({
   initialPreviousData: DailyTotal[];
   initialTrendData: PeriodSummary[];
   initialRecentExpenses: Expense[];
+  initialAllCategories: string[];
 }) {
   const [year, setYear] = useState(initialYear);
   const [month, setMonth] = useState(initialMonth);
@@ -55,6 +57,7 @@ export default function DashboardClient({
   const [settings] = useState(initialSettings);
   const [monthlyExpenses] = useState(initialMonthly);
   const [variableExpenses] = useState(initialVariable);
+  const [allCategories] = useState(initialAllCategories);
   const paydayDay = settings.paydayDay || 1;
 
   const fetchPeriod = useCallback(async (y: number, m: number) => {
@@ -237,7 +240,7 @@ export default function DashboardClient({
           <SpendingChart data={data} />
         </div>
         <div className="space-y-6">
-          <CategoryPie data={data} monthlyExpenses={monthlyExpenses} />
+          <CategoryPie data={data} monthlyExpenses={monthlyExpenses} allCategories={allCategories} />
           <DayOfWeekChart data={data} />
         </div>
       </div>
