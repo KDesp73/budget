@@ -348,6 +348,16 @@ export async function getCategories(): Promise<string[]> {
   return result.rows.map((r) => String(r.name));
 }
 
+export async function getAllCategories(): Promise<string[]> {
+  await verifySession();
+
+  const result = await db.execute(
+    `SELECT DISTINCT name FROM expenses WHERE type = 'daily' ORDER BY name ASC`
+  );
+
+  return result.rows.map((r) => String(r.name));
+}
+
 export async function getRecentExpenses(limit: number = 10): Promise<Expense[]> {
   await verifySession();
 
