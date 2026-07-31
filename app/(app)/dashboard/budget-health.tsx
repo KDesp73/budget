@@ -42,7 +42,7 @@ export default function BudgetHealth({
             <p className={`text-lg font-bold ${status.color}`}>{status.label}</p>
             <p className="text-xs text-muted-foreground">
               {remaining < 0
-                ? "Fixed costs exceed income"
+                ? "Spending exceeds income"
                 : ratio === Infinity
                   ? "No remaining budget"
                   : ratio > 1

@@ -9,7 +9,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import type { DailyTotal, Expense } from "@/app/actions/expenses";
+import type { DailyTotal } from "@/app/actions/expenses";
 
 const COLORS = [
   "hsl(239, 84%, 67%)",
@@ -25,20 +25,11 @@ const OTHER_COLOR = "hsl(0, 0%, 70%)";
 
 export default function CategoryPie({
   data,
-  monthlyExpenses = [],
-  allCategories = [],
 }: {
   data: DailyTotal[];
-  monthlyExpenses?: Expense[];
-  allCategories?: string[];
 }) {
   const categories = useMemo(() => {
     const totals = new Map<string, number>();
-
-    const monthlyTotal = monthlyExpenses.reduce((s, e) => s + e.amount, 0);
-    if (monthlyTotal > 0) {
-      totals.set("Fixed", monthlyTotal);
-    }
 
     for (const day of data) {
       for (const e of day.expenses) {
@@ -46,14 +37,11 @@ export default function CategoryPie({
       }
     }
 
-    for (const name of allCategories) {
-      if (!totals.has(name)) totals.set(name, 0);
-    }
-
     return Array.from(totals.entries())
       .map(([name, amount]) => ({ name, amount }))
+      .filter((c) => c.amount > 0)
       .sort((a, b) => b.amount - a.amount);
-  }, [data, monthlyExpenses, allCategories]);
+  }, [data]);
 
   if (categories.length === 0) return null;
 

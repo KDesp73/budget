@@ -35,7 +35,6 @@ export default function DashboardClient({
   initialPreviousData,
   initialTrendData,
   initialRecentExpenses,
-  initialAllCategories,
 }: {
   initialYear: number;
   initialMonth: number;
@@ -46,7 +45,6 @@ export default function DashboardClient({
   initialPreviousData: DailyTotal[];
   initialTrendData: PeriodSummary[];
   initialRecentExpenses: Expense[];
-  initialAllCategories: string[];
 }) {
   const [year, setYear] = useState(initialYear);
   const [month, setMonth] = useState(initialMonth);
@@ -57,7 +55,6 @@ export default function DashboardClient({
   const [settings] = useState(initialSettings);
   const [monthlyExpenses] = useState(initialMonthly);
   const [variableExpenses] = useState(initialVariable);
-  const [allCategories] = useState(initialAllCategories);
   const paydayDay = settings.paydayDay || 1;
 
   const fetchPeriod = useCallback(async (y: number, m: number) => {
@@ -98,7 +95,20 @@ export default function DashboardClient({
   const totalThisPeriod = data.reduce((sum, d) => sum + d.total, 0);
   const savingsTarget =
     (settings.monthlySalary * settings.savingsPercentage) / 100;
-  const remaining = settings.monthlySalary - totalMonthly;
+  const remaining = settings.monthlySalary;
+
+  const fixedNames = useMemo(
+    () => new Set(monthlyExpenses.map((e) => e.name)),
+    [monthlyExpenses]
+  );
+  const totalFixedRecorded = data.reduce(
+    (sum, d) =>
+      sum +
+      d.expenses
+        .filter((e) => fixedNames.has(e.name))
+        .reduce((a, e) => a + e.amount, 0),
+    0
+  );
 
   const today = new Date();
   const periodStart = new Date(startDate);
@@ -189,9 +199,9 @@ export default function DashboardClient({
         </Card>
         <Card>
           <CardHeader>
-            <CardDescription>Fixed Expenses</CardDescription>
+            <CardDescription>Fixed Expenses Recorded</CardDescription>
             <CardTitle className="text-2xl">
-              €{totalMonthly.toFixed(2)}
+              €{totalFixedRecorded.toFixed(2)}
             </CardTitle>
           </CardHeader>
         </Card>
@@ -240,7 +250,7 @@ export default function DashboardClient({
           <SpendingChart data={data} />
         </div>
         <div className="space-y-6">
-          <CategoryPie data={data} monthlyExpenses={monthlyExpenses} allCategories={allCategories} />
+          <CategoryPie data={data} />
           <DayOfWeekChart data={data} />
         </div>
       </div>
@@ -283,10 +293,10 @@ export default function DashboardClient({
 
           <Card>
             <CardHeader>
-              <CardTitle>Remaining Budget</CardTitle>
-              <CardDescription>
-                After fixed expenses & savings
-              </CardDescription>
+            <CardTitle>Remaining Budget</CardTitle>
+            <CardDescription>
+              After expenses this period
+            </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex justify-between text-sm">
