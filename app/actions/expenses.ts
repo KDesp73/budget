@@ -342,17 +342,7 @@ export async function getCategories(): Promise<string[]> {
   await verifySession();
 
   const result = await db.execute(
-    `SELECT name FROM expenses WHERE type != 'variable_monthly' GROUP BY name HAVING COUNT(*) > 1 ORDER BY name ASC`
-  );
-
-  return result.rows.map((r) => String(r.name));
-}
-
-export async function getAllCategories(): Promise<string[]> {
-  await verifySession();
-
-  const result = await db.execute(
-    `SELECT DISTINCT name FROM expenses WHERE type = 'daily' ORDER BY name ASC`
+    `SELECT DISTINCT name FROM expenses WHERE type != 'variable_monthly' ORDER BY name ASC`
   );
 
   return result.rows.map((r) => String(r.name));
