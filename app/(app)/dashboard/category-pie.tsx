@@ -30,17 +30,28 @@ export default function CategoryPie({
 }) {
   const categories = useMemo(() => {
     const totals = new Map<string, number>();
+    const counts = new Map<string, number>();
 
     for (const day of data) {
       for (const e of day.expenses) {
         totals.set(e.name, (totals.get(e.name) ?? 0) + e.amount);
+        counts.set(e.name, (counts.get(e.name) ?? 0) + 1);
       }
     }
 
-    return Array.from(totals.entries())
-      .map(([name, amount]) => ({ name, amount }))
-      .filter((c) => c.amount > 0)
-      .sort((a, b) => b.amount - a.amount);
+    const entries = Array.from(totals.entries()).filter(([, amount]) => amount > 0);
+
+    const other = entries
+      .filter(([name]) => (counts.get(name) ?? 0) === 1)
+      .reduce((sum, [, amount]) => sum + amount, 0);
+
+    const result = entries
+      .filter(([name]) => (counts.get(name) ?? 0) > 1)
+      .map(([name, amount]) => ({ name, amount }));
+
+    if (other > 0) result.push({ name: "Other", amount: other });
+
+    return result.sort((a, b) => b.amount - a.amount);
   }, [data]);
 
   if (categories.length === 0) return null;
