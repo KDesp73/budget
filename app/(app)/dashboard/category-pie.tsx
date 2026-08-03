@@ -25,38 +25,40 @@ const OTHER_COLOR = "hsl(0, 0%, 70%)";
 
 export default function CategoryPie({
   data,
+  categories,
 }: {
   data: DailyTotal[];
+  categories: string[];
 }) {
-  const categories = useMemo(() => {
+  const categorySet = useMemo(() => new Set(categories), [categories]);
+
+  const slices = useMemo(() => {
     const totals = new Map<string, number>();
-    const counts = new Map<string, number>();
 
     for (const day of data) {
       for (const e of day.expenses) {
         totals.set(e.name, (totals.get(e.name) ?? 0) + e.amount);
-        counts.set(e.name, (counts.get(e.name) ?? 0) + 1);
       }
     }
 
     const entries = Array.from(totals.entries()).filter(([, amount]) => amount > 0);
 
     const other = entries
-      .filter(([name]) => (counts.get(name) ?? 0) === 1)
+      .filter(([name]) => !categorySet.has(name))
       .reduce((sum, [, amount]) => sum + amount, 0);
 
     const result = entries
-      .filter(([name]) => (counts.get(name) ?? 0) > 1)
+      .filter(([name]) => categorySet.has(name))
       .map(([name, amount]) => ({ name, amount }));
 
     if (other > 0) result.push({ name: "Other", amount: other });
 
     return result.sort((a, b) => b.amount - a.amount);
-  }, [data]);
+  }, [data, categorySet]);
 
-  if (categories.length === 0) return null;
+  if (slices.length === 0) return null;
 
-  const total = categories.reduce((s, c) => s + c.amount, 0);
+  const total = slices.reduce((s, c) => s + c.amount, 0);
 
   return (
     <Card>
@@ -67,7 +69,7 @@ export default function CategoryPie({
         <ResponsiveContainer width="100%" height={220}>
           <PieChart>
             <Pie
-              data={categories}
+              data={slices}
               dataKey="amount"
               nameKey="name"
               cx="50%"
@@ -77,7 +79,7 @@ export default function CategoryPie({
               paddingAngle={2}
               strokeWidth={0}
             >
-              {categories.map((entry, i) => (
+              {slices.map((entry, i) => (
                 <Cell
                   key={entry.name}
                   fill={entry.name === "Other" ? OTHER_COLOR : COLORS[i % COLORS.length]}
@@ -93,7 +95,7 @@ export default function CategoryPie({
           </PieChart>
         </ResponsiveContainer>
         <div className="mt-3 space-y-1.5">
-          {categories.map((cat, i) => (
+          {slices.map((cat, i) => (
             <div
               key={cat.name}
               className="flex items-center justify-between text-sm"
