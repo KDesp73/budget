@@ -160,7 +160,7 @@ export async function getExpensesByMonth(
 export async function addExpense(formData: FormData) {
   await verifySession();
 
-  const name = formData.get("name") as string;
+  const name = ((formData.get("name") as string) ?? "").trim();
   const amount = Number(formData.get("amount"));
   const type = (formData.get("type") as "monthly" | "daily" | "variable_monthly") || "daily";
   const date = (formData.get("date") as string) || null;
@@ -371,7 +371,7 @@ export async function updateExpense(id: number, data: { name?: string; amount?: 
 
   if (data.name !== undefined) {
     sets.push("name = ?");
-    params.push(data.name);
+    params.push(data.name.trim());
   }
   if (data.amount !== undefined) {
     sets.push("amount = ?");
