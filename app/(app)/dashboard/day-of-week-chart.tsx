@@ -11,6 +11,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { tooltipContentStyle, tooltipItemStyle, tooltipLabelStyle } from "./chart-tooltip";
 import type { DailyTotal } from "@/app/actions/expenses";
 
 const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -67,6 +68,9 @@ export default function DayOfWeekChart({
             <Tooltip
               formatter={(value) => [`€${Number(value).toFixed(2)}`, "Spent"]}
               labelFormatter={(day) => day}
+              contentStyle={tooltipContentStyle}
+              labelStyle={tooltipLabelStyle}
+              itemStyle={tooltipItemStyle}
             />
             <Bar
               dataKey="amount"

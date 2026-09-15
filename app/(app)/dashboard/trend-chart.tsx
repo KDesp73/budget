@@ -10,6 +10,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { tooltipContentStyle, tooltipItemStyle, tooltipLabelStyle } from "./chart-tooltip";
 import type { PeriodSummary } from "@/app/actions/expenses";
 
 export default function TrendChart({
@@ -51,6 +52,9 @@ export default function TrendChart({
             />
             <Tooltip
               formatter={(value) => [`€${Number(value).toFixed(2)}`, "Spent"]}
+              contentStyle={tooltipContentStyle}
+              labelStyle={tooltipLabelStyle}
+              itemStyle={tooltipItemStyle}
             />
             <Line
               type="monotone"

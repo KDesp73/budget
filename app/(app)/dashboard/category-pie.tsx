@@ -9,6 +9,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { tooltipContentStyle, tooltipItemStyle, tooltipLabelStyle } from "./chart-tooltip";
 import type { DailyTotal } from "@/app/actions/expenses";
 
 const COLORS = [
@@ -92,6 +93,9 @@ export default function CategoryPie({
                 `€${Number(value).toFixed(2)}`,
                 "Spent",
               ]}
+              contentStyle={tooltipContentStyle}
+              labelStyle={tooltipLabelStyle}
+              itemStyle={tooltipItemStyle}
             />
           </PieChart>
           </ResponsiveContainer>
