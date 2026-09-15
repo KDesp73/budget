@@ -2,8 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { X } from "lucide-react";
 import { deleteExpense } from "@/app/actions/expenses";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/confirm-dialog";
@@ -23,16 +22,10 @@ export default function CalendarGrid({
   data,
   startDate,
   endDate,
-  periodLabel,
-  onPrev,
-  onNext,
 }: {
   data: DailyTotal[];
   startDate: string;
   endDate: string;
-  periodLabel: string;
-  onPrev: () => void;
-  onNext: () => void;
 }) {
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const { confirm } = useConfirm();
@@ -82,17 +75,6 @@ export default function CalendarGrid({
     <Card>
       <CardHeader className="flex-row items-center justify-between space-y-0 pb-3">
         <CardTitle className="text-base">Calendar</CardTitle>
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="xs" onClick={onPrev}>
-            <ChevronLeft className="size-4" />
-          </Button>
-          <span className="min-w-[200px] text-center text-sm font-medium">
-            {periodLabel}
-          </span>
-          <Button variant="ghost" size="xs" onClick={onNext}>
-            <ChevronRight className="size-4" />
-          </Button>
-        </div>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-7 gap-1">
