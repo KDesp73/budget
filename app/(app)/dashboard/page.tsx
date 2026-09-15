@@ -11,10 +11,9 @@ export default async function Dashboard() {
   const period = getCurrentBudgetPeriod(settings.paydayDay);
   const { startDate, endDate } = getBudgetDateRange(settings.paydayDay, period.year, period.month);
 
-  const [data, monthlyExpenses, variableExpenses, previousData, trendData, recentExpenses, categories] = await Promise.all([
+  const [data, monthlyExpenses, previousData, trendData, recentExpenses, categories] = await Promise.all([
     getExpensesByDateRange(startDate, endDate),
     getExpenses("monthly"),
-    getExpenses("variable_monthly"),
     getPreviousPeriodData(settings.paydayDay, period.year, period.month),
     getMultiPeriodTotals(settings.paydayDay, period.year, period.month, 6),
     getRecentExpenses(10),
@@ -28,7 +27,6 @@ export default async function Dashboard() {
       initialData={data}
       initialSettings={settings}
       initialMonthly={monthlyExpenses}
-      initialVariable={variableExpenses}
       initialPreviousData={previousData}
       initialTrendData={trendData}
       initialRecentExpenses={recentExpenses}

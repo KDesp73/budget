@@ -26,13 +26,14 @@ export default function TrendChart({
   }));
 
   return (
-    <Card>
+    <Card className="flex h-full flex-col">
       <CardHeader>
         <CardTitle>Spending Trend</CardTitle>
       </CardHeader>
-      <CardContent>
-        <ResponsiveContainer width="100%" height={220}>
-          <LineChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+      <CardContent className="flex-1 min-h-0">
+        <div className="h-full w-full min-h-[200px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
             <XAxis
               dataKey="label"
@@ -60,7 +61,8 @@ export default function TrendChart({
               activeDot={{ r: 6 }}
             />
           </LineChart>
-        </ResponsiveContainer>
+          </ResponsiveContainer>
+        </div>
       </CardContent>
     </Card>
   );

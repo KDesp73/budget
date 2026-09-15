@@ -61,13 +61,14 @@ export default function CategoryPie({
   const total = slices.reduce((s, c) => s + c.amount, 0);
 
   return (
-    <Card>
+    <Card className="flex h-full flex-col">
       <CardHeader>
         <CardTitle>By Category</CardTitle>
       </CardHeader>
-      <CardContent>
-        <ResponsiveContainer width="100%" height={220}>
-          <PieChart>
+      <CardContent className="flex flex-1 min-h-0 flex-col">
+        <div className="min-h-0 flex-1">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
             <Pie
               data={slices}
               dataKey="amount"
@@ -93,7 +94,8 @@ export default function CategoryPie({
               ]}
             />
           </PieChart>
-        </ResponsiveContainer>
+          </ResponsiveContainer>
+        </div>
         <div className="mt-3 space-y-1.5">
           {slices.map((cat, i) => (
             <div
