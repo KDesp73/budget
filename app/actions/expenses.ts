@@ -388,3 +388,39 @@ export async function updateExpense(id: number, data: { name?: string; amount?: 
 
   REVALIDATE_PATHS.forEach((p) => revalidatePath(p));
 }
+
+export type MonthSummary = {
+  year: number;
+  month: number;
+  label: string;
+  total: number;
+  daysWithExpenses: number;
+};
+
+export async function getExpenseMonths(): Promise<MonthSummary[]> {
+  await verifySession();
+
+  const result = await db.execute(
+    `SELECT strftime('%Y', date) AS year, strftime('%m', date) AS month,
+            SUM(amount) AS total, COUNT(DISTINCT date) AS days
+     FROM expenses
+     WHERE type = 'daily' AND date IS NOT NULL
+     GROUP BY strftime('%Y', date), strftime('%m', date)
+     ORDER BY year DESC, month DESC`
+  );
+
+  return result.rows.map((r) => {
+    const year = Number(r.year);
+    const month = Number(r.month);
+    return {
+      year,
+      month,
+      label: new Date(year, month - 1, 1).toLocaleDateString("en-US", {
+        month: "short",
+        year: "numeric",
+      }),
+      total: Number(r.total),
+      daysWithExpenses: Number(r.days),
+    };
+  });
+}
