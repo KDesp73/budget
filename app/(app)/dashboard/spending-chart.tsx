@@ -10,6 +10,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { tooltipContentStyle, tooltipItemStyle, tooltipLabelStyle } from "./chart-tooltip";
 import type { DailyTotal } from "@/app/actions/expenses";
 
 const formatCurrency = (n: number) => `€${n.toFixed(0)}`;
@@ -58,6 +59,9 @@ export default function SpendingChart({
             <Tooltip
               formatter={(value) => [`€${Number(value).toFixed(2)}`, "Spent"]}
               labelFormatter={(day) => `Day ${day}`}
+              contentStyle={tooltipContentStyle}
+              labelStyle={tooltipLabelStyle}
+              itemStyle={tooltipItemStyle}
             />
             <Bar
               dataKey="amount"
