@@ -15,6 +15,7 @@ function toPlain(row: Record<string, unknown>): Expense {
     type: row.type as "monthly" | "daily" | "variable_monthly",
     date: row.date ? String(row.date) : null,
     created_at: String(row.created_at),
+    last_paid: row.last_paid ? String(row.last_paid) : null,
   };
 }
 
@@ -25,20 +26,23 @@ export type Expense = {
   type: "monthly" | "daily" | "variable_monthly";
   date: string | null;
   created_at: string;
+  last_paid: string | null;
 };
+
+const LAST_PAID_SELECT = `(SELECT MAX(d.date) FROM expenses d WHERE d.type = 'daily' AND d.name = e.name) AS last_paid`;
 
 export async function getExpenses(type?: "monthly" | "daily" | "variable_monthly"): Promise<Expense[]> {
   await verifySession();
 
-  let sql = "SELECT id, name, amount, type, date, created_at FROM expenses";
+  let sql = `SELECT e.id, e.name, e.amount, e.type, e.date, e.created_at, ${LAST_PAID_SELECT} FROM expenses e`;
   const params: (string | number)[] = [];
 
   if (type) {
-    sql += " WHERE type = ?";
+    sql += " WHERE e.type = ?";
     params.push(type);
   }
 
-  sql += " ORDER BY created_at DESC";
+  sql += " ORDER BY e.created_at DESC";
 
   const result = await db.execute(sql, params);
   return result.rows.map((r) => toPlain(r as Record<string, unknown>));

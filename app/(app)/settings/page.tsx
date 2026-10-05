@@ -23,6 +23,25 @@ import { useConfirm } from "@/components/confirm-dialog";
 import { Check, Edit, LogOut, Plus, X, Sun, Moon } from "lucide-react";
 import type { Expense } from "@/app/actions/expenses";
 
+function formatLastPaid(lastPaid: string | null) {
+  if (!lastPaid) return "Never";
+  const [year, month, day] = lastPaid.split("-").map(Number);
+  if (!year || !month || !day) return "Never";
+  return new Date(year, month - 1, day).toLocaleDateString("default", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function LastPaidBadge({ lastPaid }: { lastPaid: string | null }) {
+  return (
+    <span className="text-[11px] text-muted-foreground">
+      Last paid: {formatLastPaid(lastPaid)}
+    </span>
+  );
+}
+
 export default function SettingsPage() {
   const { confirm } = useConfirm();
   const [loaded, setLoaded] = useState(false);
@@ -275,8 +294,11 @@ export default function SettingsPage() {
                     </div>
                   ) : (
                     <>
-                      <span className="text-sm">{expense.name}</span>
-                      <div className="flex items-center gap-2">
+                      <div className="flex min-w-0 flex-col">
+                        <span className="truncate text-sm">{expense.name}</span>
+                        <LastPaidBadge lastPaid={expense.last_paid} />
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
                         <span className="text-sm font-medium">
                           €{expense.amount.toFixed(2)}
                         </span>
@@ -289,6 +311,7 @@ export default function SettingsPage() {
                             fd.set("type", "daily");
                             fd.set("date", new Date().toISOString().slice(0, 10));
                             await addExpense(fd);
+                            refreshMonthly();
                             toast.success("Expense paid");
                           }}
                           className="text-muted-foreground hover:text-primary"
@@ -395,8 +418,11 @@ export default function SettingsPage() {
                     </div>
                   ) : (
                     <>
-                      <span className="text-sm">{expense.name}</span>
-                      <div className="flex items-center gap-2">
+                      <div className="flex min-w-0 flex-col">
+                        <span className="truncate text-sm">{expense.name}</span>
+                        <LastPaidBadge lastPaid={expense.last_paid} />
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
                         <span className="text-sm font-medium">
                           €{expense.amount.toFixed(2)}
                         </span>
